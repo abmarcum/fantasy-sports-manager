@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  ff-manager:
+    container_name: yahoo-ff-manager
+    build: .
+    ports:
+      - "${HOST_PORT:-5000}:5000"
+    env_file:
+      - .env
+    environment:
+      - PORT=5000
+      - DB_ENGINE=${DB_ENGINE:-kuzu}
+      - KUZU_DB_PATH=${KUZU_DB_PATH:-/app/data/fantasy_graph.kuzu}
+      - YAHOO_REDIRECT_URI=${YAHOO_REDIRECT_URI:-http://localhost:5000/api/auth/callback}
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped
+
+  # Optional Neo4j Server (Enable by setting DB_ENGINE=neo4j in .env)
+  neo4j:
+    container_name: neo4j-ff-db
+    image: neo4j:5.18.0
+    ports:
+      - "7474:7474" # HTTP Browser
+      - "7687:7687" # Bolt Protocol
+    environment:
+      - NEO4J_AUTH=${NEO4J_USER:-neo4j}/${NEO4J_PASSWORD:-password}
+    volumes:
+      - ./data/neo4j_data:/data
+    profiles:
+      - neo4j

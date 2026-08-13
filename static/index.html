@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fantasy Sports Manager</title>
+    <link rel="stylesheet" href="/static/css/style.css?v=white_theme_2.0">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.28.1/cytoscape.min.js"></script>
+</head>
+<body>
+
+    <header>
+        <div class="brand">
+            <div class="brand-icon">🏈</div>
+            <div>
+                <div class="brand-title">Fantasy Sports Manager</div>
+                <div style="font-size:0.75rem; color:var(--text-dim)">AI & Graph DB Powered Analytics</div>
+            </div>
+        </div>
+
+        <nav class="nav-tabs">
+            <button class="nav-tab" data-tab="lineup">🧠 Lineup</button>
+            <button class="nav-tab" data-tab="waiver">📡 Waiver</button>
+            <button class="nav-tab" data-tab="playoff">🎲 Playoff Odds</button>
+            <button class="nav-tab" data-tab="handcuff">🩹 Handcuffs</button>
+            <button class="nav-tab" data-tab="oracle">📊 Power Rankings</button>
+            <button class="nav-tab" data-tab="rivalry">⚔️ Rivalry Room</button>
+            <button class="nav-tab" data-tab="depth">📉 Roster Depth</button>
+            <button class="nav-tab" data-tab="draft">🎯 Draft</button>
+            <button class="nav-tab" data-tab="matchups">⚔️ Matchups</button>
+            <button class="nav-tab" data-tab="trade">🔄 Trades</button>
+            <button class="nav-tab" data-tab="graph">🕸️ Graph Map</button>
+        </nav>
+
+        <div class="header-right">
+            <button id="btn-header-login" class="btn btn-accent" style="padding:0.45rem 1rem; font-size:0.85rem; display:none;">
+                🔑 Login with Yahoo
+            </button>
+            <div id="auth-status-container" style="display:flex; align-items:center; gap:0.4rem;">
+                <div id="auth-status-badge" class="auth-badge">Not Authenticated</div>
+                <button id="btn-header-logout" title="Log Out / Disconnect Yahoo OAuth" class="logout-btn" style="display:none;">✕</button>
+            </div>
+            <button class="nav-tab setup-tab active" data-tab="setup">⚙️ Setup</button>
+        </div>
+    </header>
+
+    <main>
+        <!-- Tab 1: Setup & OAuth -->
+        <section id="tab-setup" class="tab-content active">
+            <div class="glass-card">
+                <h2 class="card-title">🔑 Yahoo Developer Credentials & OAuth Setup</h2>
+
+                <!-- Loaded from .env Banner (visible when configured via .env) -->
+                <div id="env-credentials-banner" style="display:none; background:rgba(16, 185, 129, 0.08); border:1px solid rgba(16, 185, 129, 0.25); border-radius:8px; padding:1rem; margin-bottom:1.5rem;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.75rem">
+                        <div style="display:flex; align-items:center; gap:0.75rem">
+                            <span style="font-size:1.5rem">🔒</span>
+                            <div>
+                                <div style="font-weight:600; color:var(--accent); font-size:1rem">Yahoo API Credentials Loaded from .env</div>
+                                <div style="font-size:0.85rem; color:var(--text-muted)">Client ID and Secret are configured via environment file and secured.</div>
+                            </div>
+                        </div>
+                        <button id="btn-toggle-manual-creds" class="btn" style="padding:0.4rem 0.8rem; font-size:0.8rem; background:#ffffff; border:1px solid #cbd5e1; color:var(--text-main); box-shadow:0 1px 2px rgba(0,0,0,0.05);">Show Manual Inputs</button>
+                    </div>
+                </div>
+
+                <!-- Manual Credentials Entry Form (hidden when configured via .env) -->
+                <div id="manual-credentials-form">
+                    <p style="color:var(--text-muted); margin-bottom:1rem; font-size:0.95rem">
+                        Enter your Yahoo App <b>Client ID</b> and <b>Client Secret</b> from the <a href="https://developer.yahoo.com/apps/" target="_blank" style="color:var(--primary)">Yahoo Developer Network</a>.
+                    </p>
+
+                    <div class="grid-3">
+                        <div>
+                            <label style="font-size:0.85rem; color:var(--text-muted); display:block; margin-bottom:0.4rem">Client ID</label>
+                            <input type="text" id="input-client-id" class="input-field" placeholder="dj0yJmk9...">
+                        </div>
+                        <div>
+                            <label style="font-size:0.85rem; color:var(--text-muted); display:block; margin-bottom:0.4rem">Client Secret</label>
+                            <input type="password" id="input-client-secret" class="input-field" placeholder="Your Client Secret">
+                        </div>
+                        <div>
+                            <label style="font-size:0.85rem; color:var(--text-muted); display:block; margin-bottom:0.4rem">Custom Redirect URI (Optional)</label>
+                            <input type="text" id="input-redirect-uri" class="input-field" placeholder="https://fantasyfootball.bogosity.org/api/auth/callback">
+                        </div>
+                    </div>
+
+                    <div style="display:flex; gap:1rem; margin-top:0.5rem; margin-bottom:1.5rem">
+                        <button id="btn-save-credentials" class="btn">Save Credentials</button>
+                    </div>
+                </div>
+
+                <div style="background:rgba(79,70,229,0.05); border:1px solid rgba(79,70,229,0.18); border-radius:8px; padding:0.75rem 1rem; margin-bottom:1.5rem; font-size:0.88rem; color:var(--text-main)">
+                    📌 <b>Active Yahoo OAuth Callback URI</b>: <code id="display-redirect-uri" style="color:var(--cyan); font-weight:600">http://localhost:5000/api/auth/callback</code><br>
+                    <span style="font-size:0.8rem; color:var(--text-muted)">
+                        ⚠️ <b>Important for Yahoo OAuth</b>: In your <a href="https://developer.yahoo.com/apps/" target="_blank" style="color:var(--primary)">Yahoo Developer App Console</a>, the <b>Redirect URI / Callback URL</b> must match the exact URL above (including <code>https://</code> if using a custom domain like <code>https://fantasyfootball.bogosity.org/api/auth/callback</code>), and <b>Fantasy Sports (Read/Write)</b> permissions must be checked.
+                    </span>
+                </div>
+
+                <div style="display:flex; gap:1rem; margin-top:0.5rem">
+                    <button id="btn-yahoo-login" class="btn btn-accent">Authenticate with Yahoo OAuth 2.0</button>
+                </div>
+            </div>
+
+            <!-- Yahoo League Ingestion Card -->
+            <div class="glass-card">
+                <h2 class="card-title">🏈 Active Yahoo League Ingestion</h2>
+                <p style="color:var(--text-muted); margin-bottom:1rem; font-size:0.95rem">
+                    Select an active Yahoo Fantasy Football league and sync all teams, rosters, draft picks, and headshots into the Kùzu Graph Database.
+                </p>
+
+                <div style="display:flex; gap:1rem; align-items:center">
+                    <select id="league-select" class="input-field" style="margin-bottom:0; max-width:400px"></select>
+                    <button id="btn-sync-league" class="btn">Sync Yahoo League to Graph DB</button>
+                </div>
+            </div>
+
+            <!-- Sleeper Multi-Platform Ingestion Card -->
+            <div class="glass-card">
+                <h2 class="card-title">🌐 Sleeper League Import (No Passwords / No OAuth Needed)</h2>
+                <p style="color:var(--text-muted); margin-bottom:1rem; font-size:0.95rem">
+                    Import any Sleeper fantasy league by username to sync rosters into your graph database alongside Yahoo.
+                </p>
+
+                <div style="display:flex; gap:1rem; align-items:center; flex-wrap:wrap">
+                    <input type="text" id="sleeper-username-input" class="input-field" placeholder="Enter Sleeper username..." style="margin-bottom:0; max-width:300px">
+                    <button id="btn-fetch-sleeper-leagues" class="btn btn-accent" style="padding:0.75rem 1.2rem">Find Sleeper Leagues</button>
+                </div>
+                <div id="sleeper-leagues-container" style="margin-top:1rem; display:none"></div>
+            </div>
+        </section>
+
+        <!-- Tab: AI Lineup Optimizer -->
+        <section id="tab-lineup" class="tab-content">
+            <div class="glass-card">
+                <h2 class="card-title">🧠 AI Lineup Optimizer & Start/Sit Decider</h2>
+                <p style="color:var(--text-muted); margin-bottom:1.5rem">
+                    Calculates your mathematically optimal starting roster using defensive matchup grades, boom/bust ceiling and floor Monte Carlo simulations, and stack correlation.
+                </p>
+                <div id="lineup-content-container"></div>
+            </div>
+        </section>
+
+        <!-- Tab: Waiver Wire Radar -->
+        <section id="tab-waiver" class="tab-content">
+            <div class="glass-card">
+                <h2 class="card-title">📡 Waiver Wire Radar & Smart FAAB Advisor</h2>
+                <p style="color:var(--text-muted); margin-bottom:1.5rem">
+                    Scans unrostered free agents, tracks sudden target share and snap spikes, and recommends optimal FAAB bidding ranges.
+                </p>
+                <div id="waiver-list-container"></div>
+            </div>
+        </section>
+
+        <!-- Tab: Playoff Machine -->
+        <section id="tab-playoff" class="tab-content">
+            <div class="glass-card">
+                <h2 class="card-title">🎲 10,000-Run Monte Carlo Playoff Machine & Title Odds</h2>
+                <p style="color:var(--text-muted); margin-bottom:1.5rem">
+                    Simulates remaining season schedules 10,000 times to predict playoff probabilities, first-round bye chances, and magic numbers to clinch.
+                </p>
+                <div id="playoff-content-container"></div>
+            </div>
+        </section>
+
+        <!-- Tab: Handcuff Matrix -->
+        <section id="tab-handcuff" class="tab-content">
+            <div class="glass-card">
+                <h2 class="card-title">🩹 Injury Handcuff Insurance & Vulnerability Matrix</h2>
+                <p style="color:var(--text-muted); margin-bottom:1.5rem">
+                    Maps your starting running backs and receivers to depth chart backups, scoring your insurance protection and flagging exposed handcuffs on waivers.
+                </p>
+                <div id="handcuff-content-container"></div>
+            </div>
+        </section>
+
+        <!-- Tab: Power Rankings & Oracle -->
+        <section id="tab-oracle" class="tab-content">
+            <div class="glass-card">
+                <h2 class="card-title">📊 True Power Rankings & The Oracle Recap</h2>
+                <p style="color:var(--text-muted); margin-bottom:1.5rem">
+                    AI-powered league power rankings with True All-Play records, coaching efficiency indices, luck ratings, and narrative weekly manager recaps.
+                </p>
+                <div id="oracle-content-container"></div>
+            </div>
+        </section>
+
+        <!-- Tab: Rivalry Room -->
+        <section id="tab-rivalry" class="tab-content">
+            <div class="glass-card">
+                <h2 class="card-title">⚔️ Manager Rivalry Matrix & Trophy Room</h2>
+                <p style="color:var(--text-muted); margin-bottom:1.5rem">
+                    Explore all-time pairwise manager head-to-head records, win percentages, biggest blowouts, and closest nailbiters in league history.
+                </p>
+                <div id="rivalry-content-container"></div>
+            </div>
+        </section>
+
+        <!-- Tab: Roster Depth -->
+        <section id="tab-depth" class="tab-content">
+            <div class="glass-card">
+                <h2 class="card-title">📉 Positional Power & Roster Depth Benchmark</h2>
+                <p style="color:var(--text-muted); margin-bottom:1.5rem">
+                    Diagnoses your team's positional power relative to the league median, pinpointing your primary trade surplus and acquisition needs.
+                </p>
+                <div id="depth-content-container"></div>
+            </div>
+        </section>
+
+        <!-- Tab: Draft Assistant -->
+        <section id="tab-draft" class="tab-content">
+            <div class="glass-card">
+                <h2 class="card-title">🎯 Live Draft Command Center & VORP Recommendations</h2>
+                <p style="color:var(--text-muted); margin-bottom:1.5rem">
+                    Graph-powered available player recommendations incorporating VORP, positional scarcity, QB-WR stack synergy, and bye-week overlap warnings.
+                </p>
+                <div id="draft-recommendations-list"></div>
+            </div>
+        </section>
+
+        <!-- Tab: League Matchups -->
+        <section id="tab-matchups" class="tab-content">
+            <div class="glass-card">
+                <h2 class="card-title">⚔️ League-Wide Head-to-Head Matchup Analyzer</h2>
+                <p style="color:var(--text-muted); margin-bottom:1.5rem">
+                    View real-time score projections, win probability meters, and historical manager rivalry records across all head-to-head matches in your league.
+                </p>
+                <div id="matchups-list-container" class="grid-2"></div>
+            </div>
+        </section>
+
+        <!-- Tab: Trade Finder -->
+        <section id="tab-trade" class="tab-content">
+            <div class="glass-card">
+                <h2 class="card-title">🔄 Graph Trade Synergy & Surplus/Deficit Finder</h2>
+                <p style="color:var(--text-muted); margin-bottom:1.5rem">
+                    Traverses Kùzu/Neo4j graph paths to discover win-win trade opportunities between teams with complementary roster depth.
+                </p>
+                <div id="trade-proposals-container"></div>
+            </div>
+        </section>
+
+        <!-- Tab: Graph Network Canvas -->
+        <section id="tab-graph" class="tab-content">
+            <div class="glass-card">
+                <h2 class="card-title">🕸️ Interactive League Graph Relationship Network</h2>
+                <p style="color:var(--text-muted); margin-bottom:1rem">
+                    Visual Cytoscape.js canvas map showing team connections, player draft picks, and head-to-head rivalries.
+                </p>
+                <div id="cy-canvas"></div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Player Profile Modal -->
+    <div id="player-modal-overlay" class="modal-overlay">
+        <div class="modal-container">
+            <div id="modal-player-content"></div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="/static/js/app.js"></script>
+    <script src="/static/js/lineup.js"></script>
+    <script src="/static/js/waiver.js"></script>
+    <script src="/static/js/playoff.js"></script>
+    <script src="/static/js/handcuff.js"></script>
+    <script src="/static/js/oracle.js"></script>
+    <script src="/static/js/rivalry.js"></script>
+    <script src="/static/js/roster_depth.js"></script>
+    <script src="/static/js/draft.js"></script>
+    <script src="/static/js/matchups.js"></script>
+    <script src="/static/js/player_modal.js"></script>
+    <script src="/static/js/trade.js"></script>
+    <script src="/static/js/graph_viz.js"></script>
+</body>
+</html>
