@@ -10,7 +10,7 @@
 <body>
 
     <header>
-        <div class="brand">
+        <div class="brand" id="brand-home-btn" title="Go to Home Dashboard">
             <div class="brand-icon">🏈</div>
             <div>
                 <div class="brand-title">Fantasy Sports Manager</div>
@@ -19,6 +19,7 @@
         </div>
 
         <nav class="nav-tabs">
+            <button class="nav-tab active" data-tab="home">🏠 Home</button>
             <button class="nav-tab" data-tab="lineup">🧠 Lineup</button>
             <button class="nav-tab" data-tab="waiver">📡 Waiver</button>
             <button class="nav-tab" data-tab="playoff">🎲 Playoff Odds</button>
@@ -40,13 +41,18 @@
                 <div id="auth-status-badge" class="auth-badge">Not Authenticated</div>
                 <button id="btn-header-logout" title="Log Out / Disconnect Yahoo OAuth" class="logout-btn" style="display:none;">✕</button>
             </div>
-            <button class="nav-tab setup-tab active" data-tab="setup">⚙️ Setup</button>
+            <button class="nav-tab setup-tab" data-tab="setup">⚙️ Setup</button>
         </div>
     </header>
 
     <main>
+        <!-- Tab 0: Home Command Center Dashboard -->
+        <section id="tab-home" class="tab-content active">
+            <div id="home-content-container"></div>
+        </section>
+
         <!-- Tab 1: Setup & OAuth -->
-        <section id="tab-setup" class="tab-content active">
+        <section id="tab-setup" class="tab-content">
             <div class="glass-card">
                 <h2 class="card-title">🔑 Yahoo Developer Credentials & OAuth Setup</h2>
 
@@ -261,6 +267,7 @@
 
     <!-- Scripts -->
     <script src="/static/js/app.js"></script>
+    <script src="/static/js/home.js"></script>
     <script src="/static/js/lineup.js"></script>
     <script src="/static/js/waiver.js"></script>
     <script src="/static/js/playoff.js"></script>

@@ -69,6 +69,21 @@ header {
     display: flex;
     align-items: center;
     gap: 0.75rem;
+    cursor: pointer;
+    user-select: none;
+    transition: transform 0.2s ease, opacity 0.2s ease;
+    border-radius: var(--radius-sm);
+    padding: 0.25rem 0.5rem;
+    margin: -0.25rem -0.5rem;
+}
+
+.brand:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+}
+
+.brand:active {
+    transform: translateY(0);
 }
 
 .brand-icon {
@@ -453,4 +468,86 @@ code {
     border-radius: var(--radius-md);
     border: 1px solid var(--glass-border);
 }
+
+/* Home Command Center Dashboard */
+.home-features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1rem;
+}
+
+.home-feature-card {
+    background: #ffffff;
+    border: 1px solid var(--glass-border);
+    border-radius: var(--radius-md);
+    padding: 1.1rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+}
+
+.home-feature-card:hover {
+    border-color: var(--primary);
+    background: #f8fafc;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(79, 70, 229, 0.08);
+}
+
+.home-feature-icon {
+    font-size: 1.6rem;
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    border-radius: var(--radius-sm);
+    background: #f1f5f9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.home-feature-card:hover .home-feature-icon {
+    background: rgba(79, 70, 229, 0.1);
+    transform: scale(1.08);
+}
+
+.home-feature-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.home-feature-title {
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: var(--text-main);
+    margin-bottom: 0.2rem;
+}
+
+.home-feature-desc {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    line-height: 1.35;
+}
+
+.home-feature-arrow {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text-dim);
+    transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.home-feature-card:hover .home-feature-arrow {
+    color: var(--primary);
+    transform: translateX(3px);
+}
+
+.home-alert-item:hover {
+    border-color: var(--primary) !important;
+    background: #f1f5f9 !important;
+    transform: translateX(3px);
+}
+
 

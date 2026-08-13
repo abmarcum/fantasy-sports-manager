@@ -2,12 +2,56 @@
 let currentLeagueKey = localStorage.getItem("selectedLeagueKey") || "";
 let currentTeamKey = localStorage.getItem("selectedTeamKey") || "";
 
+window.switchTab = function(target) {
+    const tabs = document.querySelectorAll(".nav-tab");
+    tabs.forEach(t => {
+        if (t.dataset.tab === target) {
+            t.classList.add("active");
+        } else {
+            t.classList.remove("active");
+        }
+    });
+    
+    document.querySelectorAll(".tab-content").forEach(c => c.classList.remove("active"));
+    const targetEl = document.getElementById(`tab-${target}`);
+    if (targetEl) {
+        targetEl.classList.add("active");
+    }
+    
+    // Trigger tab specific logic
+    if (target === "home") window.loadHomeView?.();
+    if (target === "lineup") window.loadLineupView?.();
+    if (target === "waiver") window.loadWaiverView?.();
+    if (target === "playoff") window.loadPlayoffView?.();
+    if (target === "handcuff") window.loadHandcuffView?.();
+    if (target === "oracle") window.loadOracleView?.();
+    if (target === "rivalry") window.loadRivalryView?.();
+    if (target === "depth") window.loadRosterDepthView?.();
+    if (target === "draft") window.loadDraftView?.();
+    if (target === "matchups") window.loadMatchupsView?.();
+    if (target === "trade") window.loadTradeView?.();
+    if (target === "graph") window.initCytoscapeGraph?.();
+
+    window.scrollTo({ top: 0, behavior: "smooth" });
+};
+
 document.addEventListener("DOMContentLoaded", () => {
     initTabs();
     handleAuthQueryParams();
     checkAuthStatus();
     loadLeagues();
     initSleeperSync();
+    
+    // Bind brand logo/title to home tab
+    const brandBtn = document.getElementById("brand-home-btn") || document.querySelector(".brand");
+    if (brandBtn) {
+        brandBtn.addEventListener("click", () => {
+            window.switchTab("home");
+        });
+    }
+
+    // Load initial home view
+    window.loadHomeView?.();
     
     // Bind buttons
     document.getElementById("btn-save-credentials")?.addEventListener("click", saveCredentials);
@@ -46,25 +90,8 @@ function initTabs() {
     const tabs = document.querySelectorAll(".nav-tab");
     tabs.forEach(tab => {
         tab.addEventListener("click", () => {
-            tabs.forEach(t => t.classList.remove("active"));
-            tab.classList.add("active");
-            
             const target = tab.dataset.tab;
-            document.querySelectorAll(".tab-content").forEach(c => c.classList.remove("active"));
-            document.getElementById(`tab-${target}`).classList.add("active");
-            
-            // Trigger tab specific logic
-            if (target === "lineup") window.loadLineupView?.();
-            if (target === "waiver") window.loadWaiverView?.();
-            if (target === "playoff") window.loadPlayoffView?.();
-            if (target === "handcuff") window.loadHandcuffView?.();
-            if (target === "oracle") window.loadOracleView?.();
-            if (target === "rivalry") window.loadRivalryView?.();
-            if (target === "depth") window.loadRosterDepthView?.();
-            if (target === "draft") window.loadDraftView?.();
-            if (target === "matchups") window.loadMatchupsView?.();
-            if (target === "trade") window.loadTradeView?.();
-            if (target === "graph") window.initCytoscapeGraph?.();
+            window.switchTab(target);
         });
     });
 }
