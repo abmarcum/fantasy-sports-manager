@@ -1,6 +1,7 @@
 import re
 import os
 import json
+import html as html_lib
 import requests
 from bs4 import BeautifulSoup
 from typing import Dict, List, Any, Optional
@@ -11,11 +12,32 @@ USER_AGENT = (
     "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36"
 )
 
+def normalize_cookie_string(raw: Optional[str]) -> str:
+    """Converts raw browser cookie strings or tab-separated DevTools cookie tables into HTTP Cookie header format."""
+    if not raw:
+        return ""
+    raw = raw.strip()
+    if "\t" in raw:
+        cookies = []
+        for line in raw.split("\n"):
+            line = line.strip()
+            if not line:
+                continue
+            parts = line.split("\t")
+            if len(parts) >= 2:
+                name = parts[0].strip()
+                val = parts[1].strip()
+                if name and val and not name.startswith("✓"):
+                    cookies.append(f"{name}={val}")
+        if cookies:
+            return "; ".join(cookies)
+    return raw.replace("\n", " ").strip()
+
 class YahooWebScraper:
     """Scrapes Yahoo Fantasy Football leagues, teams, rosters, and draft results using browser session cookies or HTML."""
 
     def __init__(self, cookie: Optional[str] = None):
-        self.cookie = cookie.strip() if cookie else ""
+        self.cookie = normalize_cookie_string(cookie)
         self.session = requests.Session()
         self.session.headers.update({
             "User-Agent": USER_AGENT,
@@ -28,7 +50,7 @@ class YahooWebScraper:
             self.session.headers["Cookie"] = self.cookie
 
     def _get_page(self, url: str) -> str:
-        """Fetches an HTML page using the authenticated session."""
+        """Fetches an HTML page using the authenticated session and unescapes entities."""
         resp = self.session.get(url, timeout=15, allow_redirects=True)
         if "login.yahoo.com" in resp.url and "login" in resp.text.lower():
             raise PermissionError(
@@ -37,29 +59,44 @@ class YahooWebScraper:
             )
         if resp.status_code != 200:
             raise RuntimeError(f"Failed to fetch {url} [HTTP {resp.status_code}]")
-        return resp.text
+        return html_lib.unescape(resp.text)
 
     def parse_league_standings_html(self, html: str, league_id: str) -> Dict[str, Any]:
         """Extracts league title, standings, team names, manager names, and team URLs from HTML."""
+        html = html_lib.unescape(html)
         soup = BeautifulSoup(html, "html.parser")
 
         # 1. League Name
         title_tag = soup.find("title")
         raw_title = title_tag.text.strip() if title_tag else f"Yahoo League {league_id}"
         league_name = raw_title
-        for suffix in ["- Free Fantasy Football", "- Yahoo! Sports", "- Yahoo Sports", "- Fantasy Football"]:
+        for suffix in [
+            "| Fantasy Football | Yahoo! Sports",
+            "- Free Fantasy Football",
+            "- Yahoo! Sports",
+            "- Yahoo Sports",
+            "- Fantasy Football"
+        ]:
             if suffix in league_name:
                 league_name = league_name.split(suffix)[0].strip()
 
-        # Check for league header
         league_header = soup.select_one("#league-title, .league-name, h1.ysf-league-name, h1")
         if league_header and len(league_header.text.strip()) > 3 and "Yahoo" not in league_header.text:
             league_name = league_header.text.strip()
 
+        # Check for user team indicators (e.g. /f1/{league_id}/{t_id}/editteaminfo)
+        user_team_id = None
+        edit_match = re.search(rf'/f1/{league_id}/(\d+)/editteaminfo', html)
+        if edit_match:
+            user_team_id = edit_match.group(1)
+
         # 2. Extract Teams
-        # Yahoo links to teams as /f1/{league_id}/{team_id}
-        teams_map: Dict[str, Dict[str, Any]] = {}
         team_link_pattern = re.compile(rf"/f1/{league_id}/(\d+)")
+        teams_map: Dict[str, Dict[str, Any]] = {}
+
+        # Scan for all team IDs matching /f1/{league_id}/{team_id}
+        found_ids = set(re.findall(rf'/f1/{league_id}/(\d+)', html))
+        found_ids.discard("0")
 
         for a in soup.find_all("a", href=team_link_pattern):
             href = a.get("href", "")
@@ -68,59 +105,53 @@ class YahooWebScraper:
                 continue
             t_id = match.group(1)
             t_name = a.text.strip()
+            if t_name and t_name.lower() in ["view team", "matchup", "recap", "draft recap"]:
+                t_name = ""
 
-            if not t_name or t_name.lower() in ["team", "view team", "matchup"]:
-                # Try finding text in parent or child img alt
+            if not t_name:
                 img = a.find("img")
                 if img and img.get("alt"):
                     t_name = img["alt"].strip()
 
-            if not t_name:
-                continue
-
-            # Check for manager and logo in surrounding row/container
             parent_row = a.find_parent(["tr", "li", "div"])
             manager_name = "Manager"
             logo_url = ""
 
             if parent_row:
-                # Look for manager nickname
                 mgr_el = parent_row.select_one(".F-sub, .user-id, .manager-name, a[href*='profiles.sports.yahoo.com']")
                 if mgr_el and mgr_el.text.strip():
                     manager_name = mgr_el.text.strip()
-                
-                # Look for team logo
                 img_el = parent_row.find("img")
                 if img_el and img_el.get("src") and "yimg.com" in img_el["src"]:
                     logo_url = img_el["src"]
 
             team_key = f"449.l.{league_id}.t.{t_id}"
-            if t_id not in teams_map or (len(t_name) > len(teams_map[t_id]["name"]) and not teams_map[t_id]["name"].startswith("Team")):
+            is_user = (t_id == user_team_id) if user_team_id else (t_id == "1")
+
+            if t_id not in teams_map:
                 teams_map[t_id] = {
                     "team_key": team_key,
                     "team_id": t_id,
-                    "name": t_name,
+                    "name": t_name or f"Team {t_id}",
                     "manager_name": manager_name,
                     "logo_url": logo_url or f"https://picsum.photos/seed/{t_id}/100/100",
                     "draft_position": int(t_id),
-                    "is_user_team": (t_id == "1") # Default first or check if current login indicator
+                    "is_user_team": is_user
                 }
+            elif t_name and (teams_map[t_id]["name"] == f"Team {t_id}" or len(t_name) > len(teams_map[t_id]["name"])):
+                teams_map[t_id]["name"] = t_name
 
-        # Fallback if no specific links found: regex match across page
-        if not teams_map:
-            raw_matches = re.findall(rf'href=["\']/f1/{league_id}/(\d+)["\'][^>]*>([^<]+)</a>', html)
-            for t_id, t_name in raw_matches:
-                t_name = t_name.strip()
-                if t_name and t_id not in teams_map:
-                    teams_map[t_id] = {
-                        "team_key": f"449.l.{league_id}.t.{t_id}",
-                        "team_id": t_id,
-                        "name": t_name,
-                        "manager_name": f"Manager {t_id}",
-                        "logo_url": f"https://picsum.photos/seed/{t_id}/100/100",
-                        "draft_position": int(t_id),
-                        "is_user_team": (t_id == "1")
-                    }
+        for t_id in found_ids:
+            if t_id not in teams_map:
+                teams_map[t_id] = {
+                    "team_key": f"449.l.{league_id}.t.{t_id}",
+                    "team_id": t_id,
+                    "name": f"Team {t_id}",
+                    "manager_name": f"Manager {t_id}",
+                    "logo_url": f"https://picsum.photos/seed/{t_id}/100/100",
+                    "draft_position": int(t_id),
+                    "is_user_team": (t_id == user_team_id) if user_team_id else False
+                }
 
         teams_list = sorted(list(teams_map.values()), key=lambda x: int(x["team_id"]))
 
@@ -135,12 +166,12 @@ class YahooWebScraper:
 
     def parse_team_roster_html(self, html: str, team_key: str) -> List[Dict[str, Any]]:
         """Extracts rostered players, positions, NFL teams, status, and headshots from a team's page."""
+        html = html_lib.unescape(html)
         soup = BeautifulSoup(html, "html.parser")
         players = []
         player_link_pattern = re.compile(r"/nfl/players/(\d+)")
 
         seen_players = set()
-        # Find player rows in the roster table
         for a in soup.find_all("a", href=player_link_pattern):
             href = a.get("href", "")
             match = player_link_pattern.search(href)
@@ -164,7 +195,6 @@ class YahooWebScraper:
             if row:
                 row_text = row.text
 
-                # Selected roster slot (QB, WR1, WR2, RB1, TE, W/R/T, K, DEF, BN, IR)
                 slot_td = row.find(["td", "th"])
                 if slot_td:
                     slot_txt = slot_td.text.strip()
@@ -172,24 +202,20 @@ class YahooWebScraper:
                         selected_pos = slot_txt
                         is_starter = slot_txt not in ["BN", "IR", "RES"]
 
-                # Extract position and NFL team (usually displayed like "KC - QB" or "SF - RB")
                 pos_team_match = re.search(r'([A-Z]{2,3})\s*-\s*([A-Z]{1,3})', row_text)
                 if pos_team_match:
                     nfl_team = pos_team_match.group(1)
                     pos = pos_team_match.group(2)
                 else:
-                    # Fallback pos search
                     for candidate_pos in ["QB", "RB", "WR", "TE", "K", "DEF"]:
                         if re.search(rf'\b{candidate_pos}\b', row_text):
                             pos = candidate_pos
                             break
 
-                # Status tag (Q, O, IR, SUSP)
                 status_el = row.select_one(".F-injury, .status, .injury")
                 if status_el:
                     status = status_el.text.strip() or "Questionable"
 
-                # Check headshot
                 img_el = row.find("img")
                 if img_el and img_el.get("src") and "headshot" in img_el["src"]:
                     headshot = img_el["src"]
@@ -211,6 +237,7 @@ class YahooWebScraper:
 
     def parse_draft_results_html(self, html: str, league_key: str) -> List[Dict[str, Any]]:
         """Extracts draft picks from the draft results page."""
+        html = html_lib.unescape(html)
         soup = BeautifulSoup(html, "html.parser")
         picks = []
 
@@ -219,7 +246,6 @@ class YahooWebScraper:
         pick_counter = 1
 
         for r in rows:
-            # Check for round header
             round_hdr = r.find(["th", "td"], string=re.compile(r"Round\s+(\d+)", re.I))
             if round_hdr:
                 m = re.search(r"Round\s+(\d+)", round_hdr.text, re.I)
@@ -261,12 +287,22 @@ class YahooWebScraper:
         league_data = self.parse_league_standings_html(home_html, clean_id)
 
         all_players = []
-        # 2. Fetch Each Team's Roster
+        # 2. Fetch Each Team's Roster & Precise Team Name
         for team in league_data["teams"]:
             t_id = team["team_id"]
             team_url = f"https://football.fantasysports.yahoo.com/f1/{clean_id}/{t_id}"
             try:
                 team_html = self._get_page(team_url)
+                
+                # Check for precise team title
+                t_title = re.search(r"<title>(.*?)</title>", team_html, re.I)
+                if t_title:
+                    raw_tt = t_title.group(1)
+                    if " - " in raw_tt:
+                        cand_name = raw_tt.split(" - ")[1].split(" | ")[0].strip()
+                        if cand_name and not cand_name.startswith("Team"):
+                            team["name"] = cand_name
+
                 team_players = self.parse_team_roster_html(team_html, team["team_key"])
                 all_players.extend(team_players)
             except Exception as e:
