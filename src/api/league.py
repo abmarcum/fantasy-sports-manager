@@ -61,7 +61,8 @@ def sync_league(league_key: str):
         # 1. Ingest League Node
         db_driver.execute_write("""
         MERGE (l:League {league_key: $league_key})
-        SET l.name = $name, l.season = $season, l.num_teams = $num_teams, l.scoring_type = $scoring_type
+        ON CREATE SET l.name = $name, l.season = $season, l.num_teams = $num_teams, l.scoring_type = $scoring_type
+        ON MATCH SET l.name = $name, l.season = $season, l.num_teams = $num_teams, l.scoring_type = $scoring_type
         """, {
             "league_key": league_key,
             "name": settings_info.get("name", "Fantasy League"),
@@ -74,7 +75,9 @@ def sync_league(league_key: str):
         for t in teams:
             db_driver.execute_write("""
             MERGE (tm:Team {team_key: $team_key})
-            SET tm.team_id = $team_id, tm.name = $name, tm.manager_name = $manager_name, 
+            ON CREATE SET tm.team_id = $team_id, tm.name = $name, tm.manager_name = $manager_name, 
+                tm.logo_url = $logo_url, tm.draft_position = $draft_position, tm.is_user_team = $is_user_team
+            ON MATCH SET tm.team_id = $team_id, tm.name = $name, tm.manager_name = $manager_name, 
                 tm.logo_url = $logo_url, tm.draft_position = $draft_position, tm.is_user_team = $is_user_team
             """, {
                 "team_key": t.get("team_key"),
@@ -87,7 +90,8 @@ def sync_league(league_key: str):
             })
 
             db_driver.execute_write("""
-            MATCH (tm:Team {team_key: $team_key}), (l:League {league_key: $league_key})
+            MATCH (tm:Team), (l:League)
+            WHERE tm.team_key = $team_key AND l.league_key = $league_key
             CREATE (tm)-[:BELONGS_TO]->(l)
             """, {
                 "team_key": t.get("team_key"),
@@ -98,7 +102,10 @@ def sync_league(league_key: str):
         for p in players:
             db_driver.execute_write("""
             MERGE (pl:Player {player_key: $player_key})
-            SET pl.player_id = $player_id, pl.name = $name, pl.position = $position,
+            ON CREATE SET pl.player_id = $player_id, pl.name = $name, pl.position = $position,
+                pl.nfl_team = $nfl_team, pl.headshot_url = $headshot_url, pl.bye_week = $bye_week,
+                pl.adp = $adp, pl.status = $status
+            ON MATCH SET pl.player_id = $player_id, pl.name = $name, pl.position = $position,
                 pl.nfl_team = $nfl_team, pl.headshot_url = $headshot_url, pl.bye_week = $bye_week,
                 pl.adp = $adp, pl.status = $status
             """, {
@@ -116,7 +123,8 @@ def sync_league(league_key: str):
         # 4. Ingest Draft Pick Relationships
         for dp in draft_picks:
             db_driver.execute_write("""
-            MATCH (tm:Team {team_key: $team_key}), (pl:Player {player_key: $player_key})
+            MATCH (tm:Team), (pl:Player)
+            WHERE tm.team_key = $team_key AND pl.player_key = $player_key
             CREATE (tm)-[:DRAFTED {pick_num: $pick_num, round: $round_num, cost: $cost}]->(pl)
             """, {
                 "team_key": dp.get("team_key"),
@@ -173,7 +181,8 @@ def load_sample_league():
         # Ingest League
         db_driver.execute_write("""
         MERGE (l:League {league_key: $league_key})
-        SET l.name = $name, l.season = $season, l.num_teams = $num_teams, l.scoring_type = $scoring_type
+        ON CREATE SET l.name = $name, l.season = $season, l.num_teams = $num_teams, l.scoring_type = $scoring_type
+        ON MATCH SET l.name = $name, l.season = $season, l.num_teams = $num_teams, l.scoring_type = $scoring_type
         """, {
             "league_key": sample_key,
             "name": "Demo Championship League",
@@ -186,7 +195,9 @@ def load_sample_league():
         for i, t in enumerate(sample_teams):
             db_driver.execute_write("""
             MERGE (tm:Team {team_key: $team_key})
-            SET tm.team_id = $team_id, tm.name = $name, tm.manager_name = $manager_name, 
+            ON CREATE SET tm.team_id = $team_id, tm.name = $name, tm.manager_name = $manager_name, 
+                tm.logo_url = $logo_url, tm.draft_position = $draft_position, tm.is_user_team = $is_user_team
+            ON MATCH SET tm.team_id = $team_id, tm.name = $name, tm.manager_name = $manager_name, 
                 tm.logo_url = $logo_url, tm.draft_position = $draft_position, tm.is_user_team = $is_user_team
             """, {
                 "team_key": t["team_key"],
@@ -199,7 +210,8 @@ def load_sample_league():
             })
 
             db_driver.execute_write("""
-            MATCH (tm:Team {team_key: $team_key}), (l:League {league_key: $league_key})
+            MATCH (tm:Team), (l:League)
+            WHERE tm.team_key = $team_key AND l.league_key = $league_key
             CREATE (tm)-[:BELONGS_TO]->(l)
             """, {"team_key": t["team_key"], "league_key": sample_key})
 
@@ -207,7 +219,10 @@ def load_sample_league():
         for idx, p in enumerate(sample_players):
             db_driver.execute_write("""
             MERGE (pl:Player {player_key: $player_key})
-            SET pl.player_id = $player_id, pl.name = $name, pl.position = $position,
+            ON CREATE SET pl.player_id = $player_id, pl.name = $name, pl.position = $position,
+                pl.nfl_team = $nfl_team, pl.headshot_url = $headshot_url, pl.bye_week = $bye_week,
+                pl.adp = $adp, pl.status = 'Active'
+            ON MATCH SET pl.player_id = $player_id, pl.name = $name, pl.position = $position,
                 pl.nfl_team = $nfl_team, pl.headshot_url = $headshot_url, pl.bye_week = $bye_week,
                 pl.adp = $adp, pl.status = 'Active'
             """, {
@@ -224,7 +239,8 @@ def load_sample_league():
             # Assign 1st round pick to team
             team_key = sample_teams[idx % len(sample_teams)]["team_key"]
             db_driver.execute_write("""
-            MATCH (tm:Team {team_key: $team_key}), (pl:Player {player_key: $player_key})
+            MATCH (tm:Team), (pl:Player)
+            WHERE tm.team_key = $team_key AND pl.player_key = $player_key
             CREATE (tm)-[:DRAFTED {pick_num: $pick_num, round: 1, cost: 0}]->(pl)
             """, {
                 "team_key": team_key,

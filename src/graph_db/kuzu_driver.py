@@ -60,4 +60,11 @@ class KuzuDriver:
 
     def execute_write(self, query: str, parameters: Optional[Dict[str, Any]] = None):
         """Executes a mutating Cypher write statement."""
-        self.execute_query(query, parameters)
+        try:
+            if parameters:
+                self.conn.execute(query, parameters)
+            else:
+                self.conn.execute(query)
+        except Exception as e:
+            print(f"Kùzu Write Execution Error: {e}\nQuery: {query}\nParams: {parameters}")
+            raise e
