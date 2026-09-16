@@ -118,4 +118,49 @@ def logout():
     yahoo_oauth.clear_tokens()
     return {"status": "success", "message": "Logged out from Yahoo OAuth successfully."}
 
+@router.get("/diagnostic")
+def run_diagnostic(league_id: Optional[str] = "1667331"):
+    """Probes Yahoo API endpoints with the current token and returns full diagnostic response data."""
+    import time
+    from src.yahoo_client import yahoo_client
+
+    tokens = yahoo_oauth.load_tokens() or {}
+    now = time.time()
+    exp = tokens.get("expires_at", 0)
+    
+    token_status = {
+        "token_file_exists": os.path.exists(settings.TOKEN_FILE_PATH),
+        "is_authenticated": yahoo_oauth.is_authenticated(),
+        "token_type": tokens.get("token_type"),
+        "granted_scope": tokens.get("scope"),
+        "xoauth_yahoo_guid": tokens.get("xoauth_yahoo_guid"),
+        "expires_in_seconds": round(exp - now) if exp else None,
+        "is_expired": now >= exp if exp else True,
+        "has_refresh_token": bool(tokens.get("refresh_token")),
+        "client_id_configured": bool(settings.YAHOO_CLIENT_ID and "your_yahoo" not in settings.YAHOO_CLIENT_ID)
+    }
+
+    test_endpoints = [
+        "game/nfl",
+        "game/449",
+        "users;use_login=1/games",
+        "users;use_login=1/games;game_keys=449/leagues",
+        "users;use_login=1/games;game_keys=nfl/leagues",
+        f"league/449.l.{league_id}/settings",
+        f"league/nfl.l.{league_id}/settings",
+        f"league/423.l.{league_id}/settings"
+    ]
+
+    probes = []
+    for ep in test_endpoints:
+        probe_res = yahoo_client.test_endpoint(ep)
+        probes.append(probe_res)
+
+    return {
+        "status": "completed",
+        "timestamp": time.strftime("%Y-%m-%d %H:%M:%S UTC", time.gmtime()),
+        "token_info": token_status,
+        "endpoint_probes": probes
+    }
+
 

@@ -63,6 +63,8 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("btn-sync-league")?.addEventListener("click", syncLeague);
     document.getElementById("btn-refresh-leagues")?.addEventListener("click", () => loadLeagues(true));
     document.getElementById("btn-sync-manual-league")?.addEventListener("click", syncManualLeague);
+    document.getElementById("btn-load-sample-league")?.addEventListener("click", loadSampleLeague);
+    document.getElementById("btn-run-diagnostic")?.addEventListener("click", runYahooDiagnostic);
     document.getElementById("btn-yahoo-login")?.addEventListener("click", startYahooLogin);
     document.getElementById("btn-header-login")?.addEventListener("click", startYahooLogin);
     document.getElementById("btn-header-logout")?.addEventListener("click", logoutYahoo);
@@ -291,7 +293,7 @@ async function syncManualLeague() {
         const data = await res.json();
         if (data.status === "success") {
             alert(`🎉 ${data.message}`);
-            const syncedKey = rawVal.includes(".l.") ? rawVal : `nfl.l.${rawVal}`;
+            const syncedKey = data.league_key || (rawVal.includes(".l.") ? rawVal : `449.l.${rawVal}`);
             currentLeagueKey = syncedKey;
             localStorage.setItem("selectedLeagueKey", currentLeagueKey);
             await loadLeagues();
@@ -303,6 +305,92 @@ async function syncManualLeague() {
     } finally {
         if (btn) {
             btn.innerText = "Sync Manual League ID";
+            btn.disabled = false;
+        }
+    }
+}
+
+async function loadSampleLeague() {
+    const btn = document.getElementById("btn-load-sample-league");
+    if (btn) {
+        btn.innerText = "Loading Demo...";
+        btn.disabled = true;
+    }
+    try {
+        const res = await fetch("/api/league/sample", { method: "POST" });
+        const data = await res.json();
+        if (data.status === "success") {
+            alert(`🎉 ${data.message}`);
+            currentLeagueKey = data.league_key;
+            localStorage.setItem("selectedLeagueKey", currentLeagueKey);
+            await loadLeagues();
+            window.loadHomeView?.();
+        } else {
+            alert(`❌ Error: ${data.detail || "Failed to load sample league"}`);
+        }
+    } catch (e) {
+        alert("Error loading sample league: " + e.message);
+    } finally {
+        if (btn) {
+            btn.innerText = "⚡ Load Sample NFL League (Instant Demo)";
+            btn.disabled = false;
+        }
+    }
+}
+
+async function runYahooDiagnostic() {
+    const btn = document.getElementById("btn-run-diagnostic");
+    const container = document.getElementById("diagnostic-results");
+    const input = document.getElementById("manual-league-key-input");
+    const leagueId = input ? input.value.trim() : "1667331";
+
+    if (btn) {
+        btn.innerText = "Running Probe...";
+        btn.disabled = true;
+    }
+    if (container) {
+        container.style.display = "block";
+        container.innerText = "⏳ Probing Yahoo OAuth token status and API endpoints in real-time...\n";
+    }
+
+    try {
+        const res = await fetch(`/api/auth/diagnostic?league_id=${encodeURIComponent(leagueId || "1667331")}`);
+        const data = await res.json();
+        
+        let out = `================ YAHOO API DIAGNOSTIC REPORT ================\n`;
+        out += `Probe Timestamp: ${data.timestamp}\n\n`;
+        out += `--- TOKEN STATUS ---\n`;
+        out += `• Authenticated: ${data.token_info.is_authenticated ? "YES ✅" : "NO ❌"}\n`;
+        out += `• Token File Exists: ${data.token_info.token_file_exists ? "YES" : "NO"}\n`;
+        out += `• Token Type: ${data.token_info.token_type || "N/A"}\n`;
+        out += `• Granted Scope: ${data.token_info.granted_scope || "None specified"}\n`;
+        out += `• User GUID: ${data.token_info.xoauth_yahoo_guid || "N/A"}\n`;
+        out += `• Token Expired: ${data.token_info.is_expired ? "EXPIRED ⚠️" : "ACTIVE (" + data.token_info.expires_in_seconds + "s remaining) ✅"}\n`;
+        out += `• Refresh Token Available: ${data.token_info.has_refresh_token ? "YES ✅" : "NO"}\n\n`;
+
+        out += `--- ENDPOINT PROBE RESULTS ---\n`;
+        for (const probe of (data.endpoint_probes || [])) {
+            const statusIcon = probe.success ? "✅ 200 OK" : `❌ HTTP ${probe.status_code}`;
+            out += `[${statusIcon}] ${probe.endpoint}\n`;
+            if (probe.error_detail) {
+                out += `   Error: ${probe.error_detail}\n`;
+            }
+            if (probe.body_preview && !probe.success) {
+                out += `   Raw Body: ${probe.body_preview.trim()}\n`;
+            }
+            out += `\n`;
+        }
+
+        if (container) {
+            container.innerText = out;
+        }
+    } catch (e) {
+        if (container) {
+            container.innerText = "Failed to run diagnostic probe: " + e.message;
+        }
+    } finally {
+        if (btn) {
+            btn.innerText = "🔍 Run Live Yahoo API Diagnostic Probe";
             btn.disabled = false;
         }
     }

@@ -14,18 +14,70 @@ class YahooFantasyClient:
             params = {}
         params["format"] = "json"
 
-        response = requests.get(url, headers=headers, params=params)
-        if response.status_code == 403:
-            raise RuntimeError("Yahoo App Permission Error (403): Ensure 'Fantasy Sports' (Read or Read/Write) is checked under API Permissions in your Yahoo Developer Console (https://developer.yahoo.com/apps/) and re-authenticate.")
-        elif response.status_code != 200:
-            raise RuntimeError(f"Yahoo API request failed [{response.status_code}]: {response.text}")
+        response = requests.get(url, headers=headers, params=params, timeout=15)
+        if response.status_code != 200:
+            err_detail = response.text
+            try:
+                import xml.etree.ElementTree as ET
+                root = ET.fromstring(response.text)
+                desc = root.find(".//description")
+                detail = root.find(".//detail")
+                if desc is not None and desc.text:
+                    err_detail = desc.text.strip()
+                    if detail is not None and detail.text:
+                        err_detail += f" ({detail.text.strip()})"
+            except Exception:
+                try:
+                    j = response.json()
+                    if "error" in j:
+                        err_detail = str(j["error"])
+                except Exception:
+                    pass
+            raise RuntimeError(f"Yahoo API [{response.status_code}] on '{endpoint}': {err_detail}")
         return response.json()
+
+    def test_endpoint(self, endpoint: str) -> Dict[str, Any]:
+        """Diagnostic probe for testing an endpoint directly and returning HTTP status code and response body."""
+        try:
+            headers = yahoo_oauth.get_auth_headers()
+        except Exception as e:
+            return {"endpoint": endpoint, "status_code": 0, "error": f"Auth Header Error: {str(e)}"}
+            
+        url = f"{BASE_URL}/{endpoint}"
+        params = {"format": "json"}
+        try:
+            response = requests.get(url, headers=headers, params=params, timeout=12)
+            body_sample = response.text[:600]
+            parsed_err = ""
+            if response.status_code != 200:
+                try:
+                    import xml.etree.ElementTree as ET
+                    root = ET.fromstring(response.text)
+                    desc = root.find(".//description")
+                    detail = root.find(".//detail")
+                    if desc is not None and desc.text:
+                        parsed_err = desc.text.strip()
+                        if detail is not None and detail.text:
+                            parsed_err += f" ({detail.text.strip()})"
+                except Exception:
+                    parsed_err = body_sample
+            return {
+                "endpoint": endpoint,
+                "status_code": response.status_code,
+                "success": response.status_code == 200,
+                "error_detail": parsed_err if parsed_err else None,
+                "body_preview": body_sample
+            }
+        except Exception as ex:
+            return {"endpoint": endpoint, "status_code": -1, "error": str(ex)}
 
     def get_user_leagues(self, game_key: str = "nfl") -> List[Dict[str, Any]]:
         """Fetch all fantasy football leagues for authenticated user with robust multi-endpoint & merged JSON parsing."""
         endpoints = [
+            "users;use_login=1/games;game_keys=449/leagues",
             f"users;use_login=1/games;game_keys={game_key}/leagues",
             "users;use_login=1/games/leagues",
+            "users;use_login=1/games;game_keys=449/teams",
             f"users;use_login=1/games;game_keys={game_key}/teams",
             "users;use_login=1/games/teams",
             "users;use_login=1/leagues"

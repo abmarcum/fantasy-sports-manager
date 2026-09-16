@@ -124,6 +124,7 @@
                     <select id="league-select" class="input-field" style="margin-bottom:0; max-width:380px"></select>
                     <button id="btn-refresh-leagues" class="btn" title="Refresh available leagues from Yahoo" style="padding:0.65rem 0.9rem; background:#ffffff; border:1px solid #cbd5e1; color:var(--text-main)">🔄 Refresh</button>
                     <button id="btn-sync-league" class="btn btn-accent">Sync Yahoo League to Graph DB</button>
+                    <button id="btn-load-sample-league" class="btn" style="background:#f1f5f9; border:1px solid #cbd5e1; color:var(--text-main); font-weight:600">⚡ Load Sample NFL League (Instant Demo)</button>
                 </div>
 
                 <!-- Manual League Key or ID Fallback -->
@@ -132,12 +133,23 @@
                         💡 <b>Don't see your league in the dropdown?</b> Enter your Yahoo League ID or League Key manually:
                     </div>
                     <div style="display:flex; gap:0.5rem; max-width:550px; align-items:center; flex-wrap:wrap">
-                        <input type="text" id="manual-league-key-input" class="input-field" placeholder="e.g. 123456 or 449.l.123456" style="margin-bottom:0; max-width:300px">
+                        <input type="text" id="manual-league-key-input" class="input-field" placeholder="e.g. 1667331 or 449.l.1667331" style="margin-bottom:0; max-width:300px">
                         <button id="btn-sync-manual-league" class="btn" style="white-space:nowrap; background:#ffffff; border:1px solid #cbd5e1; color:var(--text-main); padding:0.65rem 1rem">Sync Manual League ID</button>
                     </div>
                     <div style="font-size:0.78rem; color:var(--text-dim); margin-top:0.35rem">
-                        Your League ID is found in your Yahoo URL: <code>football.fantasysports.yahoo.com/f1/<b>123456</b></code>
+                        Your League ID is found in your Yahoo URL: <code>football.fantasysports.yahoo.com/f1/<b>1667331</b></code>
                     </div>
+                </div>
+
+                <!-- Yahoo API Diagnostic Probe Tool -->
+                <div style="margin-top:1.25rem; padding-top:1rem; border-top:1px dashed #cbd5e1">
+                    <div style="display:flex; gap:0.75rem; align-items:center; flex-wrap:wrap">
+                        <button id="btn-run-diagnostic" class="btn" style="background:#ffffff; border:1px solid #94a3b8; font-size:0.85rem; color:var(--text-main); padding:0.55rem 0.9rem">
+                            🔍 Run Live Yahoo API Diagnostic Probe
+                        </button>
+                        <span style="font-size:0.8rem; color:var(--text-muted)">Probes active OAuth tokens against Yahoo endpoints to diagnose permissions & exact error responses.</span>
+                    </div>
+                    <div id="diagnostic-results" style="display:none; margin-top:0.75rem; background:#0f172a; color:#f8fafc; border-radius:8px; padding:1rem; font-family:monospace; font-size:0.82rem; overflow-x:auto; max-height:350px; white-space:pre-wrap"></div>
                 </div>
             </div>
 
