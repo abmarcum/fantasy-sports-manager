@@ -238,8 +238,57 @@ window.loadHomeView = async function() {
                     </div>
                 </div>
 
-                <div class="home-features-grid">
-                    <!-- Tool 1: Lineup -->
+                    <!-- Tool 1: Gameday -->
+                    <div class="home-feature-card" onclick="window.switchTab('gameday')">
+                        <div class="home-feature-icon">⚡</div>
+                        <div class="home-feature-content">
+                            <div class="home-feature-title">Live Gameday & Vegas</div>
+                            <div class="home-feature-desc">Live win probability, play swing meter, Vegas implied totals & weather.</div>
+                        </div>
+                        <div class="home-feature-arrow">→</div>
+                    </div>
+
+                    <!-- Tool 2: Streaming -->
+                    <div class="home-feature-card" onclick="window.switchTab('streaming')">
+                        <div class="home-feature-icon">🛡️</div>
+                        <div class="home-feature-content">
+                            <div class="home-feature-title">DST & Kicker Streaming</div>
+                            <div class="home-feature-desc">Target turnover-prone offenses and high-implied-total dome matchups.</div>
+                        </div>
+                        <div class="home-feature-arrow">→</div>
+                    </div>
+
+                    <!-- Tool 3: What-If -->
+                    <div class="home-feature-card" onclick="window.switchTab('whatif')">
+                        <div class="home-feature-icon">🔮</div>
+                        <div class="home-feature-content">
+                            <div class="home-feature-title">What-If Schedule Simulator</div>
+                            <div class="home-feature-desc">1,000 Monte Carlo schedule runs to isolate luck from true scoring talent.</div>
+                        </div>
+                        <div class="home-feature-arrow">→</div>
+                    </div>
+
+                    <!-- Tool 4: Newsletter -->
+                    <div class="home-feature-card" onclick="window.switchTab('newsletter')">
+                        <div class="home-feature-icon">📰</div>
+                        <div class="home-feature-content">
+                            <div class="home-feature-title">Commish Roast & Discord</div>
+                            <div class="home-feature-desc">AI Commissioner weekly dispatches, roasts & one-click Discord/Slack webhooks.</div>
+                        </div>
+                        <div class="home-feature-arrow">→</div>
+                    </div>
+
+                    <!-- Tool 5: Portfolio -->
+                    <div class="home-feature-card" onclick="window.switchTab('portfolio')">
+                        <div class="home-feature-icon">🌐</div>
+                        <div class="home-feature-content">
+                            <div class="home-feature-title">Multi-League Portfolio</div>
+                            <div class="home-feature-desc">Cross-league player exposure & conflicting matchup rooting interest radar.</div>
+                        </div>
+                        <div class="home-feature-arrow">→</div>
+                    </div>
+
+                    <!-- Tool 6: Lineup -->
                     <div class="home-feature-card" onclick="window.switchTab('lineup')">
                         <div class="home-feature-icon">🧠</div>
                         <div class="home-feature-content">
@@ -249,7 +298,7 @@ window.loadHomeView = async function() {
                         <div class="home-feature-arrow">→</div>
                     </div>
 
-                    <!-- Tool 2: Waiver -->
+                    <!-- Tool 7: Waiver -->
                     <div class="home-feature-card" onclick="window.switchTab('waiver')">
                         <div class="home-feature-icon">📡</div>
                         <div class="home-feature-content">
@@ -259,7 +308,7 @@ window.loadHomeView = async function() {
                         <div class="home-feature-arrow">→</div>
                     </div>
 
-                    <!-- Tool 3: Playoff -->
+                    <!-- Tool 8: Playoff -->
                     <div class="home-feature-card" onclick="window.switchTab('playoff')">
                         <div class="home-feature-icon">🎲</div>
                         <div class="home-feature-content">
@@ -269,7 +318,7 @@ window.loadHomeView = async function() {
                         <div class="home-feature-arrow">→</div>
                     </div>
 
-                    <!-- Tool 4: Handcuffs -->
+                    <!-- Tool 9: Handcuffs -->
                     <div class="home-feature-card" onclick="window.switchTab('handcuff')">
                         <div class="home-feature-icon">🩹</div>
                         <div class="home-feature-content">
@@ -279,7 +328,7 @@ window.loadHomeView = async function() {
                         <div class="home-feature-arrow">→</div>
                     </div>
 
-                    <!-- Tool 5: Oracle -->
+                    <!-- Tool 10: Oracle -->
                     <div class="home-feature-card" onclick="window.switchTab('oracle')">
                         <div class="home-feature-icon">📊</div>
                         <div class="home-feature-content">
@@ -289,7 +338,7 @@ window.loadHomeView = async function() {
                         <div class="home-feature-arrow">→</div>
                     </div>
 
-                    <!-- Tool 6: Rivalry -->
+                    <!-- Tool 11: Rivalry -->
                     <div class="home-feature-card" onclick="window.switchTab('rivalry')">
                         <div class="home-feature-icon">⚔️</div>
                         <div class="home-feature-content">
@@ -299,7 +348,7 @@ window.loadHomeView = async function() {
                         <div class="home-feature-arrow">→</div>
                     </div>
 
-                    <!-- Tool 7: Roster Depth -->
+                    <!-- Tool 12: Roster Depth -->
                     <div class="home-feature-card" onclick="window.switchTab('depth')">
                         <div class="home-feature-icon">📉</div>
                         <div class="home-feature-content">
@@ -309,7 +358,17 @@ window.loadHomeView = async function() {
                         <div class="home-feature-arrow">→</div>
                     </div>
 
-                    <!-- Tool 8: Draft Assistant -->
+                    <!-- Tool 13: Trades -->
+                    <div class="home-feature-card" onclick="window.switchTab('trade')">
+                        <div class="home-feature-icon">🔄</div>
+                        <div class="home-feature-content">
+                            <div class="home-feature-title">Trade & Blockbuster Cycles</div>
+                            <div class="home-feature-desc">Formulate 2-team trades and 3-team circular blockbuster cycles.</div>
+                        </div>
+                        <div class="home-feature-arrow">→</div>
+                    </div>
+
+                    <!-- Tool 14: Draft Assistant -->
                     <div class="home-feature-card" onclick="window.switchTab('draft')">
                         <div class="home-feature-icon">🎯</div>
                         <div class="home-feature-content">
@@ -319,7 +378,7 @@ window.loadHomeView = async function() {
                         <div class="home-feature-arrow">→</div>
                     </div>
 
-                    <!-- Tool 9: Matchups -->
+                    <!-- Tool 15: Matchups -->
                     <div class="home-feature-card" onclick="window.switchTab('matchups')">
                         <div class="home-feature-icon">⚔️</div>
                         <div class="home-feature-content">
@@ -329,17 +388,7 @@ window.loadHomeView = async function() {
                         <div class="home-feature-arrow">→</div>
                     </div>
 
-                    <!-- Tool 10: Trades -->
-                    <div class="home-feature-card" onclick="window.switchTab('trade')">
-                        <div class="home-feature-icon">🔄</div>
-                        <div class="home-feature-content">
-                            <div class="home-feature-title">Graph Trade Finder</div>
-                            <div class="home-feature-desc">Traverse graph relationships to formulate win-win roster proposals.</div>
-                        </div>
-                        <div class="home-feature-arrow">→</div>
-                    </div>
-
-                    <!-- Tool 11: Graph Network -->
+                    <!-- Tool 16: Graph Network -->
                     <div class="home-feature-card" onclick="window.switchTab('graph')">
                         <div class="home-feature-icon">🕸️</div>
                         <div class="home-feature-content">
@@ -349,7 +398,7 @@ window.loadHomeView = async function() {
                         <div class="home-feature-arrow">→</div>
                     </div>
 
-                    <!-- Tool 12: Setup -->
+                    <!-- Tool 17: Setup -->
                     <div class="home-feature-card" onclick="window.switchTab('setup')">
                         <div class="home-feature-icon">⚙️</div>
                         <div class="home-feature-content">

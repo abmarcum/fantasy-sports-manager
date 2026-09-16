@@ -20,11 +20,16 @@ window.switchTab = function(target) {
     
     // Trigger tab specific logic
     if (target === "home") window.loadHomeView?.();
+    if (target === "gameday") window.loadGamedayView?.();
     if (target === "lineup") window.loadLineupView?.();
     if (target === "waiver") window.loadWaiverView?.();
+    if (target === "streaming") window.loadStreamingView?.();
     if (target === "playoff") window.loadPlayoffView?.();
+    if (target === "whatif") window.loadWhatIfView?.();
     if (target === "handcuff") window.loadHandcuffView?.();
     if (target === "oracle") window.loadOracleView?.();
+    if (target === "newsletter") window.loadNewsletterView?.();
+    if (target === "portfolio") window.loadPortfolioView?.();
     if (target === "rivalry") window.loadRivalryView?.();
     if (target === "depth") window.loadRosterDepthView?.();
     if (target === "draft") window.loadDraftView?.();
