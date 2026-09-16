@@ -235,41 +235,92 @@ class YahooWebScraper:
 
         return players
 
-    def parse_draft_results_html(self, html: str, league_key: str) -> List[Dict[str, Any]]:
+    def parse_draft_results_html(self, html: str, league_key: str, teams: Optional[List[Dict[str, Any]]] = None) -> List[Dict[str, Any]]:
         """Extracts draft picks from the draft results page."""
         html = html_lib.unescape(html)
         soup = BeautifulSoup(html, "html.parser")
         picks = []
+
+        team_name_map = {}
+        if teams:
+            for t in teams:
+                clean_tname = t.get("name", "").strip().lower()
+                if clean_tname:
+                    team_name_map[clean_tname] = t.get("team_key")
+                    team_name_map[re.sub(r'[^a-z0-9]', '', clean_tname)] = t.get("team_key")
 
         rows = soup.find_all("tr")
         current_round = 1
         pick_counter = 1
 
         for r in rows:
-            round_hdr = r.find(["th", "td"], string=re.compile(r"Round\s+(\d+)", re.I))
+            round_hdr = r.find(lambda tag: tag.name in ["th", "td"] and "Round" in tag.text)
             if round_hdr:
                 m = re.search(r"Round\s+(\d+)", round_hdr.text, re.I)
                 if m:
                     current_round = int(m.group(1))
 
             player_a = r.find("a", href=re.compile(r"/nfl/players/\d+"))
-            team_a = r.find("a", href=re.compile(r"/f1/\d+/\d+"))
+            if not player_a:
+                continue
 
-            if player_a and team_a:
-                p_match = re.search(r"/nfl/players/(\d+)", player_a["href"])
+            p_match = re.search(r"/nfl/players/(\d+)", player_a["href"])
+            if not p_match:
+                continue
+            p_id = p_match.group(1)
+            p_name = player_a.text.strip()
+
+            # Extract pick number
+            pick_td = r.find("td", class_=re.compile(r"first"))
+            pick_num = pick_counter
+            if pick_td:
+                pm = re.search(r"(\d+)", pick_td.text)
+                if pm:
+                    pick_num = int(pm.group(1))
+
+            # Extract team key
+            team_key = ""
+            team_a = r.find("a", href=re.compile(r"/f1/\d+/(\d+)"))
+            if team_a:
                 t_match = re.search(r"/f1/(\d+)/(\d+)", team_a["href"])
-                if p_match and t_match:
-                    t_id = t_match.group(2)
-                    p_id = p_match.group(1)
-                    picks.append({
-                        "team_key": f"449.l.{t_match.group(1)}.t.{t_id}",
-                        "player_key": f"nfl.p.{p_id}",
-                        "player_name": player_a.text.strip(),
-                        "round": current_round,
-                        "pick": pick_counter,
-                        "cost": 0
-                    })
-                    pick_counter += 1
+                if t_match:
+                    team_key = f"449.l.{t_match.group(1)}.t.{t_match.group(2)}"
+
+            if not team_key:
+                team_td = r.find("td", class_=re.compile(r"last"))
+                if team_td:
+                    cand_team_name = (team_td.get("title") or team_td.text).strip()
+                    lower_name = cand_team_name.lower()
+                    if lower_name in team_name_map:
+                        team_key = team_name_map[lower_name]
+                    else:
+                        clean_norm = re.sub(r'[^a-z0-9]', '', lower_name)
+                        if clean_norm in team_name_map:
+                            team_key = team_name_map[clean_norm]
+                        else:
+                            for tname, tkey in team_name_map.items():
+                                if tname in lower_name or lower_name in tname:
+                                    team_key = tkey
+                                    break
+
+            if not team_key and teams:
+                num_teams = len(teams)
+                if num_teams > 0:
+                    team_idx = (pick_num - 1) % num_teams
+                    if current_round % 2 == 0:
+                        team_idx = (num_teams - 1) - team_idx
+                    team_key = teams[team_idx % num_teams]["team_key"]
+
+            if team_key:
+                picks.append({
+                    "team_key": team_key,
+                    "player_key": f"nfl.p.{p_id}",
+                    "player_name": p_name,
+                    "round": current_round,
+                    "pick": pick_num,
+                    "cost": 0
+                })
+                pick_counter += 1
 
         return picks
 
@@ -313,7 +364,7 @@ class YahooWebScraper:
         try:
             draft_url = f"https://football.fantasysports.yahoo.com/f1/{clean_id}/draftresults"
             draft_html = self._get_page(draft_url)
-            draft_picks = self.parse_draft_results_html(draft_html, league_data["league_key"])
+            draft_picks = self.parse_draft_results_html(draft_html, league_data["league_key"], league_data.get("teams"))
         except Exception as e:
             print(f"Draft results not available or error: {e}")
 
@@ -362,7 +413,7 @@ class YahooWebScraper:
             db_driver.execute_write("""
             MATCH (tm:Team), (l:League)
             WHERE tm.team_key = $team_key AND l.league_key = $league_key
-            CREATE (tm)-[:BELONGS_TO]->(l)
+            MERGE (tm)-[:BELONGS_TO]->(l)
             """, {
                 "team_key": t["team_key"],
                 "league_key": league_key
@@ -391,7 +442,9 @@ class YahooWebScraper:
                 db_driver.execute_write("""
                 MATCH (tm:Team), (pl:Player)
                 WHERE tm.team_key = $team_key AND pl.player_key = $player_key
-                CREATE (tm)-[:ROSTERED {week: 1, selected_position: $selected_pos, is_starter: $is_starter}]->(pl)
+                MERGE (tm)-[r:ROSTERED {week: 1}]->(pl)
+                ON CREATE SET r.selected_position = $selected_pos, r.is_starter = $is_starter
+                ON MATCH SET r.selected_position = $selected_pos, r.is_starter = $is_starter
                 """, {
                     "team_key": p["team_key"],
                     "player_key": p["player_key"],
@@ -404,7 +457,9 @@ class YahooWebScraper:
             db_driver.execute_write("""
             MATCH (tm:Team), (pl:Player)
             WHERE tm.team_key = $team_key AND pl.player_key = $player_key
-            CREATE (tm)-[:DRAFTED {pick_num: $pick_num, round: $round_num, cost: 0}]->(pl)
+            MERGE (tm)-[d:DRAFTED]->(pl)
+            ON CREATE SET d.pick_num = $pick_num, d.round = $round_num, d.cost = 0
+            ON MATCH SET d.pick_num = $pick_num, d.round = $round_num, d.cost = 0
             """, {
                 "team_key": dp["team_key"],
                 "player_key": dp["player_key"],

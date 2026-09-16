@@ -33,9 +33,10 @@ class KuzuDriver:
         for stmt in KUZU_SCHEMA_STATEMENTS:
             try:
                 self.conn.execute(stmt)
-            except Exception:
-                # Table likely already exists
-                pass
+            except Exception as e:
+                err_msg = str(e).lower()
+                if "already exists" not in err_msg:
+                    print(f"Kùzu Schema Init Info: {e}")
 
     def execute_query(self, query: str, parameters: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
         """Executes a Cypher query against Kùzu and returns list of dictionary records."""
