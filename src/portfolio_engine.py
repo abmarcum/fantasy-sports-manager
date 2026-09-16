@@ -67,12 +67,14 @@ class PortfolioEngine:
                     "shares": 0
                 }
 
-            player_map[p_name]["shares"] += 1
-            player_map[p_name]["leagues"].append({
-                "league_key": matching_user_team["league_key"],
-                "league_name": matching_user_team["league_name"],
-                "team_name": matching_user_team["name"]
-            })
+            league_key = matching_user_team["league_key"]
+            if not any(l["league_key"] == league_key for l in player_map[p_name]["leagues"]):
+                player_map[p_name]["shares"] += 1
+                player_map[p_name]["leagues"].append({
+                    "league_key": league_key,
+                    "league_name": matching_user_team["league_name"],
+                    "team_name": matching_user_team["name"]
+                })
 
         # Calculate exposure percentages
         exposure_list = []
