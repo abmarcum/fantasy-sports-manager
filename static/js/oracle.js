@@ -59,11 +59,17 @@ window.loadOracleView = async function() {
                             </tr>
                         </thead>
                         <tbody>
-                            ${rankings.map(t => `
-                                <tr style="border-bottom:1px solid var(--glass-border)">
+                            ${rankings.map(t => {
+                                const teamKey = localStorage.getItem("selectedTeamKey");
+                                const isFocus = teamKey && t.team_key === teamKey;
+                                return `
+                                <tr style="border-bottom:1px solid var(--glass-border); background:${isFocus ? 'rgba(79, 70, 229, 0.05)' : 'transparent'};">
                                     <td style="padding:0.75rem; font-weight:800; font-size:1.05rem; color:var(--primary)">#${t.rank}</td>
                                     <td style="padding:0.75rem">
-                                        <div style="font-weight:700; color:var(--text-main)">${t.name}</div>
+                                        <div style="font-weight:700; color:var(--text-main)">
+                                            ${t.name}
+                                            ${isFocus ? '<span class="badge-team-focus" style="font-size:0.65rem; margin-left:0.35rem">Your Team</span>' : ''}
+                                        </div>
                                         <div style="font-size:0.75rem; color:var(--text-muted)">${t.manager}</div>
                                     </td>
                                     <td style="padding:0.75rem; font-weight:600">${t.actual_record}</td>
@@ -78,7 +84,8 @@ window.loadOracleView = async function() {
                                         <span style="background:rgba(79,70,229,0.1); color:var(--primary); font-weight:800; padding:0.25rem 0.6rem; border-radius:4px; font-size:0.95rem">${t.power_score}</span>
                                     </td>
                                 </tr>
-                            `).join("")}
+                            `;
+                            }).join("")}
                         </tbody>
                     </table>
                 </div>

@@ -96,13 +96,17 @@ window.loadWhatIfView = async function() {
                         </tr>
                     </thead>
                     <tbody>
-                        ${standings.map(t => `
-                            <tr style="border-bottom:1px solid var(--glass-border); background:#ffffff">
+                        ${standings.map(t => {
+                            const teamKey = localStorage.getItem("selectedTeamKey");
+                            const isFocus = teamKey && t.team_key === teamKey;
+                            return `
+                            <tr style="border-bottom:1px solid var(--glass-border); background:${isFocus ? 'rgba(79, 70, 229, 0.05)' : '#ffffff'};">
                                 <td style="padding:0.75rem; font-weight:800; font-family:var(--font-mono); color:var(--primary)">
                                     #${t.expected_rank}
                                 </td>
                                 <td style="padding:0.75rem; font-weight:700; color:var(--text-main)">
                                     ${t.name} <span style="font-size:0.75rem; color:var(--text-muted)">(${t.manager})</span>
+                                    ${isFocus ? '<span class="badge-team-focus" style="font-size:0.65rem; margin-left:0.35rem">Your Team</span>' : ''}
                                 </td>
                                 <td style="padding:0.75rem; font-weight:700; font-family:var(--font-mono)">
                                     ${t.actual_wins}-${t.actual_losses}
@@ -126,7 +130,8 @@ window.loadWhatIfView = async function() {
                                     </span>
                                 </td>
                             </tr>
-                        `).join("")}
+                        `;
+                        }).join("")}
                     </tbody>
                 </table>
             </div>

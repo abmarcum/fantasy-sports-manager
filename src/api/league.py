@@ -37,6 +37,40 @@ def get_user_leagues():
 
     return {"leagues": leagues, "debug": yahoo_debug}
 
+@router.get("/teams")
+@router.get("/{league_key}/teams")
+def get_league_teams(league_key: Optional[str] = None):
+    """Returns all teams belonging to the given league from Graph DB, or all teams if fallback."""
+    teams = []
+    clean_key = (league_key or "").strip()
+    try:
+        if clean_key and clean_key != "all" and clean_key != "sample":
+            query = """
+            MATCH (t:Team)-[:BELONGS_TO]->(l:League)
+            WHERE l.league_key = $league_key
+            RETURN t.team_key AS team_key, t.team_id AS team_id, t.name AS name,
+                   t.manager_name AS manager_name, t.logo_url AS logo_url,
+                   t.draft_position AS draft_position, t.is_user_team AS is_user_team
+            ORDER BY t.name ASC
+            """
+            teams = db_driver.execute_query(query, {"league_key": clean_key})
+        
+        # If no teams returned with BELONGS_TO or clean_key is "all" or "sample", query all teams
+        if not teams:
+            query = """
+            MATCH (t:Team)
+            RETURN t.team_key AS team_key, t.team_id AS team_id, t.name AS name,
+                   t.manager_name AS manager_name, t.logo_url AS logo_url,
+                   t.draft_position AS draft_position, t.is_user_team AS is_user_team
+            ORDER BY t.name ASC
+            """
+            teams = db_driver.execute_query(query)
+    except Exception as e:
+        print(f"Error querying teams for league {league_key}: {e}")
+        teams = []
+
+    return {"league_key": league_key, "teams": teams, "total": len(teams)}
+
 @router.post("/sync/{league_key}")
 def sync_league(league_key: str):
     """Fetches real Yahoo league teams, settings, players, and draft picks into Kùzu Graph DB."""

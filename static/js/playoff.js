@@ -43,13 +43,18 @@ window.loadPlayoffView = async function() {
                         </thead>
                         <tbody>
                             ${teams.map((t, idx) => {
+                                const teamKey = localStorage.getItem("selectedTeamKey");
+                                const isFocus = teamKey && t.team_key === teamKey;
                                 const playoffColor = t.playoff_probability > 75 ? '#059669' : (t.playoff_probability > 30 ? '#4f46e5' : '#dc2626');
                                 const champColor = t.championship_probability > 25 ? '#f59e0b' : '#64748b';
 
                                 return `
-                                    <tr style="border-bottom:1px solid var(--glass-border); background:${idx % 2 === 0 ? '#ffffff' : '#fcfcfd'}">
+                                    <tr style="border-bottom:1px solid var(--glass-border); background:${isFocus ? 'rgba(79, 70, 229, 0.05)' : (idx % 2 === 0 ? '#ffffff' : '#fcfcfd')}">
                                         <td style="padding:0.9rem 1rem">
-                                            <div style="font-weight:700; color:var(--text-main)">${t.name}</div>
+                                            <div style="font-weight:700; color:var(--text-main)">
+                                                ${t.name}
+                                                ${isFocus ? '<span class="badge-team-focus" style="font-size:0.65rem; margin-left:0.35rem">Your Team</span>' : ''}
+                                            </div>
                                             <div style="font-size:0.75rem; color:var(--text-muted)">${t.manager}</div>
                                         </td>
                                         <td style="padding:0.9rem 1rem; font-weight:600">${t.current_record}</td>

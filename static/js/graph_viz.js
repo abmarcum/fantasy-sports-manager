@@ -11,7 +11,13 @@ window.initCytoscapeGraph = async function() {
     
     try {
         const leagueKey = currentLeagueKey || localStorage.getItem("selectedLeagueKey") || "";
-        const url = leagueKey ? `/api/graph/network?league_key=${encodeURIComponent(leagueKey)}` : "/api/graph/network";
+        const teamKey = currentTeamKey || localStorage.getItem("selectedTeamKey") || "";
+        let url = "/api/graph/network";
+        const params = new URLSearchParams();
+        if (leagueKey) params.set("league_key", leagueKey);
+        if (teamKey) params.set("team_key", teamKey);
+        if (params.toString()) url += `?${params.toString()}`;
+
         const res = await fetch(url);
         const data = await res.json();
         
@@ -62,6 +68,18 @@ window.initCytoscapeGraph = async function() {
                     }
                 },
                 {
+                    selector: 'node[?is_focus]',
+                    style: {
+                        'width': 66,
+                        'height': 66,
+                        'font-size': '14px',
+                        'font-weight': '800',
+                        'border-width': 4,
+                        'border-color': '#10b981',
+                        'background-color': '#ecfdf5'
+                    }
+                },
+                {
                     selector: 'edge',
                     style: {
                         'width': 2,
@@ -83,6 +101,15 @@ window.initCytoscapeGraph = async function() {
                 idealEdgeLength: 100
             }
         });
+
+        if (teamKey) {
+            cy.ready(() => {
+                const focusNode = cy.$(`node[id = "${teamKey}"]`);
+                if (focusNode.length > 0) {
+                    cy.center(focusNode);
+                }
+            });
+        }
     } catch (e) {
         container.innerHTML = `<div style="color:var(--rose); padding:2rem">Error rendering graph network: ${e.message}</div>`;
     }

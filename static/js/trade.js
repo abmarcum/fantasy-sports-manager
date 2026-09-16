@@ -40,7 +40,9 @@ window.loadTradeView = async function() {
 
 async function loadBlockbusterTrades(leagueKey, container) {
     try {
-        const res = await fetch(`/api/trade/blockbuster?league_key=${leagueKey}`);
+        const teamKey = localStorage.getItem("selectedTeamKey") || "";
+        const url = `/api/trade/blockbuster?league_key=${leagueKey}${teamKey ? `&user_team_key=${teamKey}` : ''}`;
+        const res = await fetch(url);
         const data = await res.json();
         const proposals = data.proposals || [];
 
@@ -109,7 +111,8 @@ async function loadBlockbusterTrades(leagueKey, container) {
 
 async function load2TeamTrades(leagueKey, container) {
     try {
-        const res = await fetch(`/api/trade/synergies?league_key=${leagueKey}&user_team_key=${leagueKey}.t.1`);
+        const teamKey = localStorage.getItem("selectedTeamKey") || (leagueKey ? `${leagueKey}.t.1` : "");
+        const res = await fetch(`/api/trade/synergies?league_key=${leagueKey}&user_team_key=${teamKey}`);
         const data = await res.json();
         const proposals = data.proposals || [];
 

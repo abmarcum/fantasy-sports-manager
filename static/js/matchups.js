@@ -18,6 +18,15 @@ window.loadMatchupsView = async function() {
         
         container.innerHTML = "";
         const matchups = data.matchups || [];
+        const teamKey = localStorage.getItem("selectedTeamKey");
+
+        if (teamKey && matchups.length > 0) {
+            matchups.sort((a, b) => {
+                const aHas = (a.team1?.team_key === teamKey || a.team2?.team_key === teamKey) ? 1 : 0;
+                const bHas = (b.team1?.team_key === teamKey || b.team2?.team_key === teamKey) ? 1 : 0;
+                return bHas - aHas;
+            });
+        }
         
         if (matchups.length === 0) {
             container.innerHTML = '<div style="color:var(--text-muted)">No active matchups found. Sync your league to update.</div>';
@@ -26,13 +35,21 @@ window.loadMatchupsView = async function() {
         
         matchups.forEach(m => {
             const card = document.createElement("div");
-            card.className = "glass-card matchup-card";
-            
             const t1 = m.team1;
             const t2 = m.team2;
+            const isFocusMatchup = teamKey && (t1.team_key === teamKey || t2.team_key === teamKey);
+
+            card.className = "glass-card matchup-card";
+            if (isFocusMatchup) {
+                card.style.border = "2px solid var(--primary)";
+                card.style.boxShadow = "0 4px 14px rgba(79, 70, 229, 0.12)";
+            }
             
             card.innerHTML = `
-                <div style="font-size:0.85rem; color:var(--text-muted); font-weight:600">WEEK ${m.week} MATCHUP</div>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem">
+                    <div style="font-size:0.85rem; color:var(--text-muted); font-weight:600">WEEK ${m.week} MATCHUP</div>
+                    ${isFocusMatchup ? '<span class="badge-team-focus">Your Focus Matchup</span>' : ''}
+                </div>
                 
                 <div class="matchup-team">
                     <div style="font-weight:600">${t1.name}</div>

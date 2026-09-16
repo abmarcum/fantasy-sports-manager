@@ -55,12 +55,71 @@ window.switchTab = function(target) {
     window.scrollTo({ top: 0, behavior: "smooth" });
 };
 
+window.refreshActiveTab = function() {
+    const activeTab = document.querySelector(".nav-tab.active");
+    const target = activeTab ? activeTab.dataset.tab : "home";
+    if (target === "home") window.loadHomeView?.();
+    else if (target === "gameday") window.loadGamedayView?.();
+    else if (target === "lineup") window.loadLineupView?.();
+    else if (target === "waiver") window.loadWaiverView?.();
+    else if (target === "streaming") window.loadStreamingView?.();
+    else if (target === "playoff") window.loadPlayoffView?.();
+    else if (target === "whatif") window.loadWhatIfView?.();
+    else if (target === "handcuff") window.loadHandcuffView?.();
+    else if (target === "oracle") window.loadOracleView?.();
+    else if (target === "newsletter") window.loadNewsletterView?.();
+    else if (target === "portfolio") window.loadPortfolioView?.();
+    else if (target === "rivalry") window.loadRivalryView?.();
+    else if (target === "depth") window.loadRosterDepthView?.();
+    else if (target === "draft") window.loadDraftView?.();
+    else if (target === "matchups") window.loadMatchupsView?.();
+    else if (target === "trade") window.loadTradeView?.();
+    else if (target === "graph") window.initCytoscapeGraph?.();
+};
+
 document.addEventListener("DOMContentLoaded", () => {
     initTabs();
     handleAuthQueryParams();
     checkAuthStatus();
     loadLeagues();
     initSleeperSync();
+
+    // Setup Global Context Bar Event Listeners
+    const globalLeagueSelect = document.getElementById("global-league-select");
+    const globalTeamSelect = document.getElementById("global-team-select");
+    const setupLeagueSelect = document.getElementById("league-select");
+
+    const onLeagueChange = async (newLeagueKey) => {
+        if (!newLeagueKey) return;
+        currentLeagueKey = newLeagueKey;
+        localStorage.setItem("selectedLeagueKey", currentLeagueKey);
+        if (globalLeagueSelect && globalLeagueSelect.value !== currentLeagueKey) {
+            globalLeagueSelect.value = currentLeagueKey;
+        }
+        if (setupLeagueSelect && setupLeagueSelect.value !== currentLeagueKey) {
+            setupLeagueSelect.value = currentLeagueKey;
+        }
+        await loadTeamsForLeague(currentLeagueKey);
+        window.refreshActiveTab?.();
+    };
+
+    globalLeagueSelect?.addEventListener("change", (e) => onLeagueChange(e.target.value));
+    setupLeagueSelect?.addEventListener("change", (e) => onLeagueChange(e.target.value));
+
+    globalTeamSelect?.addEventListener("change", (e) => {
+        const selectedKey = e.target.value;
+        if (!selectedKey) return;
+        currentTeamKey = selectedKey;
+        localStorage.setItem("selectedTeamKey", currentTeamKey);
+        const selectedOpt = globalTeamSelect.options[globalTeamSelect.selectedIndex];
+        updateTeamPerspectiveUI({
+            team_key: selectedKey,
+            name: selectedOpt.dataset.name || selectedOpt.innerText,
+            manager_name: selectedOpt.dataset.manager || "",
+            is_user_team: selectedOpt.dataset.isUser === "true"
+        });
+        window.refreshActiveTab?.();
+    });
     
     // Bind brand logo/title to home tab
     const brandBtn = document.getElementById("brand-home-btn") || document.querySelector(".brand");
@@ -267,55 +326,157 @@ async function startYahooLogin() {
 }
 
 async function loadLeagues(showNotice = false) {
-    const select = document.getElementById("league-select");
-    if (!select) return;
+    const setupSelect = document.getElementById("league-select");
+    const globalSelect = document.getElementById("global-league-select");
     
     try {
         const res = await fetch("/api/league/list");
         const data = await res.json();
-        select.innerHTML = '<option value="">Select a Fantasy League...</option>';
         const leagues = data.leagues || [];
 
         if (data.debug) {
             console.log("Yahoo League Ingestion Debug Log:", data.debug);
         }
-        
-        leagues.forEach(l => {
-            const opt = document.createElement("option");
-            opt.value = l.league_key;
-            opt.innerText = `${l.name} (${l.season})`;
-            select.appendChild(opt);
-        });
-        
-        if (leagues.length === 0) {
-            const opt = document.createElement("option");
-            opt.disabled = true;
-            if (data.error) {
-                opt.innerText = `⚠️ Yahoo API: ${data.error}`;
-            } else {
-                opt.innerText = "No leagues auto-detected. Enter your League ID below!";
+
+        const populate = (sel, placeholder) => {
+            if (!sel) return;
+            sel.innerHTML = `<option value="">${placeholder}</option>`;
+            leagues.forEach(l => {
+                const opt = document.createElement("option");
+                opt.value = l.league_key;
+                opt.innerText = `${l.name} (${l.season})`;
+                sel.appendChild(opt);
+            });
+            if (leagues.length === 0) {
+                const opt = document.createElement("option");
+                opt.disabled = true;
+                opt.innerText = data.error ? `⚠️ Yahoo API: ${data.error}` : "No leagues auto-detected";
+                sel.appendChild(opt);
             }
-            select.appendChild(opt);
-            if (showNotice) {
-                alert("Yahoo did not return leagues automatically for this account. You can enter your League ID (from your Yahoo URL) in the box below to sync directly!");
-            }
-        } else if (showNotice) {
-            alert(`Found ${leagues.length} league(s) from Yahoo!`);
+        };
+
+        populate(setupSelect, "Select a Fantasy League...");
+        populate(globalSelect, "Select a League...");
+
+        if (leagues.length === 0 && showNotice) {
+            alert("Yahoo did not return leagues automatically for this account. You can enter your League ID (from your Yahoo URL) in the box below to sync directly!");
+        } else if (leagues.length > 0 && showNotice) {
+            alert(`Found ${leagues.length} league(s)!`);
         }
 
-        if (currentLeagueKey && leagues.some(l => l.league_key === currentLeagueKey)) {
-            select.value = currentLeagueKey;
+        // Determine active league
+        if (!currentLeagueKey || !leagues.some(l => l.league_key === currentLeagueKey)) {
+            if (leagues.length > 0) {
+                currentLeagueKey = leagues[0].league_key;
+                localStorage.setItem("selectedLeagueKey", currentLeagueKey);
+            }
         }
-        
-        select.addEventListener("change", (e) => {
-            currentLeagueKey = e.target.value;
-            localStorage.setItem("selectedLeagueKey", currentLeagueKey);
-        });
+
+        if (currentLeagueKey) {
+            if (setupSelect) setupSelect.value = currentLeagueKey;
+            if (globalSelect) globalSelect.value = currentLeagueKey;
+        }
+
+        // Now load teams for this league
+        await loadTeamsForLeague(currentLeagueKey);
+
     } catch (e) {
         console.error("Error loading leagues:", e);
         if (showNotice) alert("Error fetching leagues: " + e.message);
     }
 }
+
+async function loadTeamsForLeague(leagueKey) {
+    const teamSelect = document.getElementById("global-team-select");
+    const badge = document.getElementById("focused-team-badge");
+    const hintDisplay = document.getElementById("perspective-team-display");
+    if (!teamSelect) return;
+
+    if (!leagueKey) {
+        teamSelect.innerHTML = '<option value="">Select league first...</option>';
+        if (badge) badge.style.display = "none";
+        if (hintDisplay) hintDisplay.innerText = "No League Selected";
+        return;
+    }
+
+    teamSelect.innerHTML = '<option value="">Loading teams...</option>';
+
+    try {
+        const res = await fetch(`/api/league/${encodeURIComponent(leagueKey)}/teams`);
+        const data = await res.json();
+        const teams = data.teams || [];
+
+        teamSelect.innerHTML = "";
+        if (teams.length === 0) {
+            teamSelect.innerHTML = '<option value="">No teams found</option>';
+            if (badge) badge.style.display = "none";
+            if (hintDisplay) hintDisplay.innerText = "No Teams Found";
+            return;
+        }
+
+        teams.forEach(t => {
+            const opt = document.createElement("option");
+            opt.value = t.team_key;
+            const star = t.is_user_team ? " ★ (Your Team)" : "";
+            const manager = t.manager_name ? ` · ${t.manager_name}` : "";
+            opt.innerText = `${t.name}${manager}${star}`;
+            opt.dataset.isUser = t.is_user_team ? "true" : "false";
+            opt.dataset.name = t.name;
+            opt.dataset.manager = t.manager_name || "";
+            teamSelect.appendChild(opt);
+        });
+
+        // Selection logic:
+        // 1. If stored currentTeamKey exists in the fetched teams, keep it.
+        // 2. Else find team with is_user_team === true.
+        // 3. Else default to first team.
+        let targetTeam = teams.find(t => t.team_key === currentTeamKey);
+        if (!targetTeam) {
+            targetTeam = teams.find(t => t.is_user_team) || teams[0];
+            currentTeamKey = targetTeam ? targetTeam.team_key : "";
+            if (currentTeamKey) {
+                localStorage.setItem("selectedTeamKey", currentTeamKey);
+            }
+        }
+
+        if (targetTeam) {
+            teamSelect.value = targetTeam.team_key;
+            updateTeamPerspectiveUI(targetTeam);
+        }
+    } catch (e) {
+        console.error("Error loading teams for league:", e);
+        teamSelect.innerHTML = '<option value="">Error loading teams</option>';
+    }
+}
+
+function updateTeamPerspectiveUI(team) {
+    const badge = document.getElementById("focused-team-badge");
+    const hintDisplay = document.getElementById("perspective-team-display");
+    if (!team) return;
+
+    if (badge) {
+        if (team.is_user_team) {
+            badge.innerText = "★ Your Team";
+            badge.style.display = "inline-flex";
+            badge.style.background = "rgba(16, 185, 129, 0.12)";
+            badge.style.color = "#059669";
+            badge.style.borderColor = "rgba(16, 185, 129, 0.25)";
+        } else {
+            badge.innerText = "Active Focus";
+            badge.style.display = "inline-flex";
+            badge.style.background = "rgba(79, 70, 229, 0.08)";
+            badge.style.color = "var(--primary)";
+            badge.style.borderColor = "rgba(79, 70, 229, 0.2)";
+        }
+    }
+
+    if (hintDisplay) {
+        const mgr = team.manager_name ? ` (${team.manager_name})` : "";
+        hintDisplay.innerText = `${team.name}${mgr}`;
+    }
+}
+
+window.loadTeamsForLeague = loadTeamsForLeague;
 
 async function syncManualLeague() {
     const input = document.getElementById("manual-league-key-input");

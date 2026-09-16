@@ -13,7 +13,8 @@ window.loadDraftView = async function() {
     container.innerHTML = '<div style="color:var(--text-muted)">Loading Graph Recommendations...</div>';
     
     try {
-        const res = await fetch(`/api/draft/recommendations?league_key=${leagueKey}&user_team_key=${leagueKey}.t.1`);
+        const teamKey = localStorage.getItem("selectedTeamKey") || (leagueKey ? `${leagueKey}.t.1` : "");
+        const res = await fetch(`/api/draft/recommendations?league_key=${leagueKey}&user_team_key=${teamKey}`);
         const data = await res.json();
         
         container.innerHTML = "";

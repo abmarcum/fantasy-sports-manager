@@ -18,6 +18,15 @@ window.loadRivalryView = async function() {
         const matrix = data.matrix || [];
         const superlatives = data.superlatives || {};
 
+        const teamKey = localStorage.getItem("selectedTeamKey");
+        if (teamKey && matrix.length > 0) {
+            matrix.sort((a, b) => {
+                const aHas = (a.team1_key === teamKey || a.team2_key === teamKey) ? 1 : 0;
+                const bHas = (b.team1_key === teamKey || b.team2_key === teamKey) ? 1 : 0;
+                return bHas - aHas;
+            });
+        }
+
         container.innerHTML = `
             <!-- Trophy Room Superlatives -->
             <div class="grid-2" style="margin-bottom:1.5rem">
@@ -36,19 +45,28 @@ window.loadRivalryView = async function() {
 
             <!-- Rivalry Records Grid -->
             <div class="glass-card">
-                <h3 style="font-size:1.15rem; font-weight:800; margin-bottom:1rem; color:var(--text-main)">Manager Head-to-Head Records</h3>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem">
+                    <h3 style="font-size:1.15rem; font-weight:800; color:var(--text-main); margin-bottom:0">Manager Head-to-Head Records</h3>
+                    ${teamKey ? '<span style="font-size:0.8rem; color:var(--text-muted)">Sorted by your focus team</span>' : ''}
+                </div>
                 <div class="grid-2">
-                    ${matrix.map(r => `
-                        <div style="background:#f8fafc; border:1px solid var(--glass-border); border-radius:8px; padding:0.75rem 1rem; display:flex; justify-content:space-between; align-items:center">
+                    ${matrix.map(r => {
+                        const isFocus = teamKey && (r.team1_key === teamKey || r.team2_key === teamKey);
+                        return `
+                        <div style="${isFocus ? 'background:#ffffff; border:2px solid var(--primary); box-shadow:0 2px 8px rgba(79,70,229,0.1);' : 'background:#f8fafc; border:1px solid var(--glass-border);'} border-radius:8px; padding:0.75rem 1rem; display:flex; justify-content:space-between; align-items:center">
                             <div>
-                                <div style="font-weight:700; color:var(--text-main); font-size:0.95rem">${r.team1_name} <span style="font-weight:400; color:var(--text-muted)">vs</span> ${r.team2_name}</div>
+                                <div style="font-weight:700; color:var(--text-main); font-size:0.95rem">
+                                    ${r.team1_name} <span style="font-weight:400; color:var(--text-muted)">vs</span> ${r.team2_name}
+                                    ${isFocus ? '<span class="badge-team-focus" style="font-size:0.65rem; margin-left:0.35rem">Your Matchup</span>' : ''}
+                                </div>
                                 <div style="font-size:0.8rem; color:var(--text-muted); margin-top:0.2rem">Win Rate: <b>${r.win_percentage}%</b> · Tier: <span style="color:var(--primary); font-weight:600">${r.rivalry_tier}</span></div>
                             </div>
                             <div style="background:#ffffff; border:1px solid var(--glass-border); border-radius:6px; padding:0.3rem 0.6rem; font-weight:800; font-size:1rem; color:var(--primary)">
                                 ${r.record}
                             </div>
                         </div>
-                    `).join("") || '<div style="color:var(--text-muted)">No head-to-head match records recorded yet.</div>'}
+                    `;
+                    }).join("") || '<div style="color:var(--text-muted)">No head-to-head match records recorded yet.</div>'}
                 </div>
             </div>
         `;

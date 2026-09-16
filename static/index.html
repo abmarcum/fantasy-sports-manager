@@ -47,8 +47,42 @@
                 <button id="btn-header-logout" title="Log Out / Disconnect Yahoo OAuth" class="logout-btn" style="display:none;">✕</button>
             </div>
             <button class="nav-tab setup-tab" data-tab="setup">⚙️ Setup</button>
-        </div>
     </header>
+
+    <!-- Global League & Team Perspective Context Bar -->
+    <div id="global-context-bar" class="global-context-bar">
+        <div class="context-container">
+            <div class="context-controls">
+                <div class="context-group">
+                    <label for="global-league-select" class="context-label">
+                        <span class="context-icon">🏆</span>
+                        <span>League:</span>
+                    </label>
+                    <select id="global-league-select" class="context-select" title="Active Fantasy League">
+                        <option value="">Loading leagues...</option>
+                    </select>
+                </div>
+
+                <div class="context-divider"></div>
+
+                <div class="context-group">
+                    <label for="global-team-select" class="context-label">
+                        <span class="context-icon">👤</span>
+                        <span>Manager Perspective:</span>
+                    </label>
+                    <select id="global-team-select" class="context-select" title="Switch active team perspective across all dashboards">
+                        <option value="">Loading teams...</option>
+                    </select>
+                    <span id="focused-team-badge" class="badge-team-focus" style="display:none;"></span>
+                </div>
+            </div>
+
+            <div class="context-status" id="global-context-status">
+                <span class="perspective-pulse"></span>
+                <span id="perspective-hint-text">Viewing as: <strong id="perspective-team-display">All League</strong></span>
+            </div>
+        </div>
+    </div>
 
     <main>
         <!-- Tab 0: Home Command Center Dashboard -->

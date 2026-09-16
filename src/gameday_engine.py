@@ -69,8 +69,19 @@ class GamedayEngine:
         for the user's active matchup.
         """
         # Fetch user team or default
-        teams_query = "MATCH (t:Team) RETURN t.team_key AS team_key, t.name AS name, t.manager_name AS manager, t.is_user_team AS is_user"
-        teams = db_driver.execute_query(teams_query)
+        if league_key and league_key != "sample" and league_key != "demo.l.1001":
+            teams_query = """
+            MATCH (t:Team)-[:BELONGS_TO]->(l:League)
+            WHERE l.league_key = $league_key
+            RETURN t.team_key AS team_key, t.name AS name, t.manager_name AS manager, t.is_user_team AS is_user
+            """
+            teams = db_driver.execute_query(teams_query, {"league_key": league_key})
+            if not teams:
+                teams_query = "MATCH (t:Team) RETURN t.team_key AS team_key, t.name AS name, t.manager_name AS manager, t.is_user_team AS is_user"
+                teams = db_driver.execute_query(teams_query)
+        else:
+            teams_query = "MATCH (t:Team) RETURN t.team_key AS team_key, t.name AS name, t.manager_name AS manager, t.is_user_team AS is_user"
+            teams = db_driver.execute_query(teams_query)
 
         if not teams:
             return self._generate_fallback_gameday()

@@ -5,7 +5,7 @@ from src.graph_db.driver import db_driver
 router = APIRouter(prefix="/api/graph", tags=["Cytoscape Graph Network"])
 
 @router.get("/network")
-def get_graph_network(league_key: Optional[str] = Query(None)):
+def get_graph_network(league_key: Optional[str] = Query(None), team_key: Optional[str] = Query(None)):
     """Formats Kùzu/Neo4j graph nodes and relationships for Cytoscape.js 2D canvas visualization."""
     nodes = []
     edges = []
@@ -27,14 +27,16 @@ def get_graph_network(league_key: Optional[str] = Query(None)):
         tid = str(t.get("id"))
         if tid not in node_ids:
             node_ids.add(tid)
+            is_focus = bool(team_key and tid == team_key)
             nodes.append({
                 "data": {
                     "id": tid,
-                    "label": t.get("name", "Team"),
+                    "label": f"⭐ {t.get('name', 'Team')}" if is_focus else t.get("name", "Team"),
                     "subtitle": t.get("manager", ""),
                     "type": "Team",
                     "image": t.get("logo_url", ""),
-                    "color": "#3b82f6"
+                    "color": "#10b981" if is_focus else "#3b82f6",
+                    "is_focus": is_focus
                 }
             })
 

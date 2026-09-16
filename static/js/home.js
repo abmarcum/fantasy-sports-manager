@@ -38,7 +38,7 @@ window.loadHomeView = async function() {
             fetch(`/api/matchups/league?league_key=${leagueKey}`).then(r => r.json()),
             fetch(`/api/oracle/rankings?league_key=${leagueKey}`).then(r => r.json()),
             fetch(`/api/lineup/optimize?league_key=${leagueKey}&team_key=${teamKey}`).then(r => r.json()),
-            fetch(`/api/waiver/radar?league_key=${leagueKey}`).then(r => r.json())
+            fetch(`/api/waiver/radar?league_key=${leagueKey}&team_key=${teamKey}`).then(r => r.json())
         ]);
 
         const matchupsData = matchupsRes.status === "fulfilled" ? matchupsRes.value : null;
@@ -51,16 +51,36 @@ window.loadHomeView = async function() {
 
         // Find user's active matchup
         let userMatchup = null;
+        let myTeamData = null;
+        let oppTeamData = null;
+        let myWinProb = 50.0;
+        let oppWinProb = 50.0;
+
         if (matchupsData && matchupsData.matchups && matchupsData.matchups.length > 0) {
             userMatchup = matchupsData.matchups.find(m => 
-                (m.team_1 && (m.team_1.team_key === teamKey || m.team_1.is_user_team)) ||
-                (m.team_2 && (m.team_2.team_key === teamKey || m.team_2.is_user_team))
+                (m.team_1 && (m.team_1.team_key === teamKey || (!teamKey && m.team_1.is_user_team))) ||
+                (m.team_2 && (m.team_2.team_key === teamKey || (!teamKey && m.team_2.is_user_team)))
             ) || matchupsData.matchups[0];
+
+            if (userMatchup) {
+                const isTeam2Target = Boolean(userMatchup.team_2 && (userMatchup.team_2.team_key === teamKey || (!teamKey && userMatchup.team_2.is_user_team)));
+                if (isTeam2Target) {
+                    myTeamData = userMatchup.team_2;
+                    oppTeamData = userMatchup.team_1;
+                    myWinProb = userMatchup.team_2_win_prob;
+                    oppWinProb = userMatchup.team_1_win_prob;
+                } else {
+                    myTeamData = userMatchup.team_1;
+                    oppTeamData = userMatchup.team_2;
+                    myWinProb = userMatchup.team_1_win_prob;
+                    oppWinProb = userMatchup.team_2_win_prob;
+                }
+            }
         }
 
         // Top team/manager in power rankings
         const rankings = oracleData?.rankings || [];
-        const userRanking = rankings.find(r => r.team_key === teamKey || r.is_user_team) || rankings[0] || null;
+        const userRanking = rankings.find(r => r.team_key === teamKey || (!teamKey && r.is_user_team)) || rankings[0] || null;
         const oracleHeadline = oracleData?.oracle?.headline || "Weekly League Briefing Active";
         const oracleSummary = oracleData?.oracle?.summary || "AI models have updated your power ratings, win probability curves, and high-leverage trade trajectories.";
 
@@ -86,7 +106,7 @@ window.loadHomeView = async function() {
                                 </span>
                             </div>
                             <div style="font-size:0.85rem; color:var(--text-muted); margin-top:0.15rem">
-                                League Key: <code style="font-size:0.8rem">${leagueKey}</code> · ${userRanking ? `Power Rank: <b>#${userRanking.rank}</b> (${userRanking.power_score || 85} pts)` : 'Active Analytics Engine'}
+                                League: <code style="font-size:0.8rem">${leagueKey}</code> · ${userRanking ? `Perspective: <b>${userRanking.name}</b> (Rank #${userRanking.rank})` : 'Active Analytics Engine'}
                             </div>
                         </div>
                     </div>
@@ -114,12 +134,14 @@ window.loadHomeView = async function() {
                             </span>
                         </div>
 
-                        ${userMatchup ? `
+                        ${myTeamData && oppTeamData ? `
                             <div style="display:flex; justify-content:space-between; align-items:center; background:#f8fafc; border:1px solid var(--glass-border); border-radius:var(--radius-md); padding:1rem; margin-bottom:1rem">
                                 <div style="flex:1">
-                                    <div style="font-weight:700; color:var(--text-main); font-size:1.05rem">${userMatchup.team_1.name}</div>
-                                    <div style="font-size:0.8rem; color:var(--text-muted)">${userMatchup.team_1.manager || ''}</div>
-                                    <div style="font-size:1.3rem; font-weight:800; color:var(--primary); margin-top:0.25rem">${userMatchup.team_1.projected_score} <span style="font-size:0.75rem; color:var(--text-muted); font-weight:500">proj</span></div>
+                                    <div style="font-weight:700; color:var(--text-main); font-size:1.05rem">
+                                        ${myTeamData.name} <span class="badge-team-focus" style="margin-left:0.25rem; font-size:0.7rem">Focus Team</span>
+                                    </div>
+                                    <div style="font-size:0.8rem; color:var(--text-muted)">${myTeamData.manager || 'Manager'}</div>
+                                    <div style="font-size:1.3rem; font-weight:800; color:var(--primary); margin-top:0.25rem">${myTeamData.projected_score} <span style="font-size:0.75rem; color:var(--text-muted); font-weight:500">proj</span></div>
                                 </div>
 
                                 <div style="text-align:center; padding:0 1rem">
@@ -127,21 +149,21 @@ window.loadHomeView = async function() {
                                 </div>
 
                                 <div style="flex:1; text-align:right">
-                                    <div style="font-weight:700; color:var(--text-main); font-size:1.05rem">${userMatchup.team_2.name}</div>
-                                    <div style="font-size:0.8rem; color:var(--text-muted)">${userMatchup.team_2.manager || ''}</div>
-                                    <div style="font-size:1.3rem; font-weight:800; color:var(--text-main); margin-top:0.25rem">${userMatchup.team_2.projected_score} <span style="font-size:0.75rem; color:var(--text-muted); font-weight:500">proj</span></div>
+                                    <div style="font-weight:700; color:var(--text-main); font-size:1.05rem">${oppTeamData.name}</div>
+                                    <div style="font-size:0.8rem; color:var(--text-muted)">${oppTeamData.manager || 'Opponent'}</div>
+                                    <div style="font-size:1.3rem; font-weight:800; color:var(--text-main); margin-top:0.25rem">${oppTeamData.projected_score} <span style="font-size:0.75rem; color:var(--text-muted); font-weight:500">proj</span></div>
                                 </div>
                             </div>
 
                             <!-- Win Probability Meter -->
                             <div style="margin-bottom:1rem">
                                 <div style="display:flex; justify-content:space-between; font-size:0.82rem; font-weight:700; margin-bottom:0.35rem">
-                                    <span style="color:var(--primary)">${userMatchup.team_1.name}: ${userMatchup.team_1_win_prob}%</span>
-                                    <span style="color:var(--text-muted)">${userMatchup.team_2.name}: ${userMatchup.team_2_win_prob}%</span>
+                                    <span style="color:var(--primary)">${myTeamData.name}: ${myWinProb}%</span>
+                                    <span style="color:var(--text-muted)">${oppTeamData.name}: ${oppWinProb}%</span>
                                 </div>
                                 <div class="prob-bar-container" style="height:10px">
-                                    <div class="prob-bar" style="width:${userMatchup.team_1_win_prob}%; background:linear-gradient(90deg, var(--primary), var(--cyan));"></div>
-                                    <div class="prob-bar" style="width:${userMatchup.team_2_win_prob}%; background:#cbd5e1;"></div>
+                                    <div class="prob-bar" style="width:${myWinProb}%; background:linear-gradient(90deg, var(--primary), var(--cyan));"></div>
+                                    <div class="prob-bar" style="width:${oppWinProb}%; background:#cbd5e1;"></div>
                                 </div>
                             </div>
                         ` : `

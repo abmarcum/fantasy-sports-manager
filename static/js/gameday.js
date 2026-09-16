@@ -2,6 +2,7 @@
 
 window.loadGamedayView = async function() {
     const leagueKey = localStorage.getItem("selectedLeagueKey") || "sample";
+    const teamKey = localStorage.getItem("selectedTeamKey") || "";
     const container = document.getElementById("gameday-content-container");
     if (!container) return;
 
@@ -9,7 +10,7 @@ window.loadGamedayView = async function() {
 
     try {
         const [liveRes, vegasRes] = await Promise.all([
-            fetch(`/api/gameday/live?league_key=${leagueKey}`),
+            fetch(`/api/gameday/live?league_key=${leagueKey}${teamKey ? `&team_key=${teamKey}` : ''}`),
             fetch(`/api/gameday/vegas-weather?league_key=${leagueKey}`)
         ]);
 
