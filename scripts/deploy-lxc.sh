@@ -92,6 +92,7 @@ KUZU_DB_PATH=${INSTALL_DIR}/data/fantasy_graph.kuzu
 YAHOO_CLIENT_ID=
 YAHOO_CLIENT_SECRET=
 YAHOO_REDIRECT_URI=http://${LOCAL_IP}:5000/api/auth/callback
+YAHOO_OAUTH_SCOPE=fspt-r
 EOF
     fi
 fi

@@ -25,6 +25,10 @@ class YahooOAuth:
     def token_file(self) -> str:
         return settings.TOKEN_FILE_PATH
 
+    @property
+    def scope(self) -> str:
+        return getattr(settings, "YAHOO_OAUTH_SCOPE", "fspt-r")
+
     def get_auth_url(self, redirect_uri: str = None, state: str = "ff_manager") -> str:
         """Returns authorization URL for the user to visit and grant access."""
         r_uri = redirect_uri or self.redirect_uri
@@ -33,7 +37,7 @@ class YahooOAuth:
             "redirect_uri": r_uri,
             "response_type": "code",
             "state": state,
-            "scope": "fspt-w"
+            "scope": self.scope
         }
         req = requests.Request("GET", AUTH_URL, params=params)
         return req.prepare().url

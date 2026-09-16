@@ -16,7 +16,7 @@ class YahooFantasyClient:
 
         response = requests.get(url, headers=headers, params=params)
         if response.status_code == 403:
-            raise RuntimeError("Yahoo App Permission Error (403): Ensure 'Fantasy Sports (Read/Write)' is checked under API Permissions in your Yahoo Developer Console (https://developer.yahoo.com/apps/) and re-authenticate.")
+            raise RuntimeError("Yahoo App Permission Error (403): Ensure 'Fantasy Sports' (Read or Read/Write) is checked under API Permissions in your Yahoo Developer Console (https://developer.yahoo.com/apps/) and re-authenticate.")
         elif response.status_code != 200:
             raise RuntimeError(f"Yahoo API request failed [{response.status_code}]: {response.text}")
         return response.json()

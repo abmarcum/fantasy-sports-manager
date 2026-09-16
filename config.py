@@ -52,6 +52,7 @@ class Settings(BaseSettings):
     YAHOO_CLIENT_ID: str = os.getenv("YAHOO_CLIENT_ID", saved_creds.get("YAHOO_CLIENT_ID", ""))
     YAHOO_CLIENT_SECRET: str = os.getenv("YAHOO_CLIENT_SECRET", saved_creds.get("YAHOO_CLIENT_SECRET", ""))
     YAHOO_REDIRECT_URI: str = os.getenv("YAHOO_REDIRECT_URI", saved_creds.get("YAHOO_REDIRECT_URI", f"http://localhost:{default_port}/api/auth/callback"))
+    YAHOO_OAUTH_SCOPE: str = os.getenv("YAHOO_OAUTH_SCOPE", "fspt-r")
     
     # Graph Database Config
     DB_ENGINE: str = os.getenv("DB_ENGINE", "kuzu")
