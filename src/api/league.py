@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException
-from typing import Dict, Any
+from pydantic import BaseModel
+from typing import Dict, Any, Optional, List
 from src.yahoo_client import yahoo_client
 from src.graph_db.driver import db_driver
 
@@ -256,3 +257,50 @@ def load_sample_league():
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Sample league error: {str(e)}")
+
+class ScrapePayload(BaseModel):
+    league_id: str
+    cookie: Optional[str] = None
+
+class HtmlScrapePayload(BaseModel):
+    league_id: str
+    html: str
+
+@router.post("/scrape")
+def scrape_yahoo_league(payload: ScrapePayload):
+    """Scrapes Yahoo Fantasy Football league using optional browser session cookies without requiring developer API approval."""
+    from src.scrapers.yahoo_scraper import YahooWebScraper
+
+    clean_id = payload.league_id.strip()
+    if not clean_id:
+        raise HTTPException(status_code=400, detail="League ID cannot be empty.")
+
+    try:
+        scraper = YahooWebScraper(cookie=payload.cookie)
+        scraped_data = scraper.scrape_full_league(clean_id)
+        result = scraper.ingest_scraped_data(scraped_data)
+        return result
+    except PermissionError as pe:
+        raise HTTPException(status_code=403, detail=str(pe))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Scraper error: {str(e)}")
+
+@router.post("/scrape-html")
+def import_yahoo_html(payload: HtmlScrapePayload):
+    """Imports Yahoo league standings and teams directly from pasted page HTML source."""
+    from src.scrapers.yahoo_scraper import YahooWebScraper
+
+    clean_id = payload.league_id.strip()
+    if not clean_id:
+        raise HTTPException(status_code=400, detail="League ID cannot be empty.")
+    if not payload.html or len(payload.html.strip()) < 50:
+        raise HTTPException(status_code=400, detail="HTML content is too short or empty. Please paste the full page source.")
+
+    try:
+        scraper = YahooWebScraper()
+        scraped_data = scraper.parse_league_standings_html(payload.html, clean_id)
+        result = scraper.ingest_scraped_data(scraped_data)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"HTML import error: {str(e)}")
+

@@ -69,6 +69,34 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("btn-header-login")?.addEventListener("click", startYahooLogin);
     document.getElementById("btn-header-logout")?.addEventListener("click", logoutYahoo);
     
+    // Scraper mode toggles and action buttons
+    document.getElementById("btn-scraper-mode-cookie")?.addEventListener("click", () => {
+        const cp = document.getElementById("scraper-cookie-panel");
+        const hp = document.getElementById("scraper-html-panel");
+        const bc = document.getElementById("btn-scraper-mode-cookie");
+        const bh = document.getElementById("btn-scraper-mode-html");
+        if (cp && hp) { cp.style.display = "block"; hp.style.display = "none"; }
+        if (bc && bh) {
+            bc.style.background = "#4f46e5"; bc.style.color = "#ffffff";
+            bh.style.background = "#ffffff"; bh.style.color = "var(--text-main)";
+        }
+    });
+
+    document.getElementById("btn-scraper-mode-html")?.addEventListener("click", () => {
+        const cp = document.getElementById("scraper-cookie-panel");
+        const hp = document.getElementById("scraper-html-panel");
+        const bc = document.getElementById("btn-scraper-mode-cookie");
+        const bh = document.getElementById("btn-scraper-mode-html");
+        if (cp && hp) { cp.style.display = "none"; hp.style.display = "block"; }
+        if (bc && bh) {
+            bh.style.background = "#4f46e5"; bh.style.color = "#ffffff";
+            bc.style.background = "#ffffff"; bc.style.color = "var(--text-main)";
+        }
+    });
+
+    document.getElementById("btn-run-scrape")?.addEventListener("click", runCookieScrape);
+    document.getElementById("btn-run-html-import")?.addEventListener("click", runHtmlImport);
+
     // Toggle manual credentials inputs
     document.getElementById("btn-toggle-manual-creds")?.addEventListener("click", () => {
         const manualForm = document.getElementById("manual-credentials-form");
@@ -482,3 +510,94 @@ window.syncSleeperLeague = async function(leagueId, leagueName) {
         alert("Error syncing Sleeper league: " + e.message);
     }
 };
+
+async function runCookieScrape() {
+    const leagueInput = document.getElementById("scrape-league-id-input");
+    const cookieInput = document.getElementById("scrape-cookie-input");
+    const leagueId = leagueInput ? leagueInput.value.trim() : "";
+    const cookie = cookieInput ? cookieInput.value.trim() : "";
+
+    if (!leagueId) {
+        alert("Please enter a Yahoo League ID (e.g. 1667331).");
+        return;
+    }
+
+    const btn = document.getElementById("btn-run-scrape");
+    if (btn) {
+        btn.innerText = "🕷️ Scraping Teams & Rosters (5-10s)...";
+        btn.disabled = true;
+    }
+
+    try {
+        const res = await fetch("/api/league/scrape", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ league_id: leagueId, cookie: cookie || null })
+        });
+        const data = await res.json();
+        if (data.status === "success") {
+            alert(`🎉 ${data.message}\nTeams: ${data.counts?.teams || 0} | Players: ${data.counts?.players || 0}`);
+            currentLeagueKey = data.league_key;
+            localStorage.setItem("selectedLeagueKey", currentLeagueKey);
+            await loadLeagues();
+            window.loadHomeView?.();
+        } else {
+            alert(`❌ Scrape error: ${data.detail || data.message || "Failed to scrape league"}`);
+        }
+    } catch (e) {
+        alert("Error executing scraper: " + e.message);
+    } finally {
+        if (btn) {
+            btn.innerText = "🕷️ Scrape Full League & Ingest into Graph DB";
+            btn.disabled = false;
+        }
+    }
+}
+
+async function runHtmlImport() {
+    const leagueInput = document.getElementById("scrape-html-league-id");
+    const htmlInput = document.getElementById("scrape-html-textarea");
+    const leagueId = leagueInput ? leagueInput.value.trim() : "";
+    const html = htmlInput ? htmlInput.value.trim() : "";
+
+    if (!leagueId) {
+        alert("Please enter a Yahoo League ID (e.g. 1667331).");
+        return;
+    }
+    if (!html || html.length < 50) {
+        alert("Please paste the page HTML source from your browser (Right-click → View Page Source → Copy All).");
+        return;
+    }
+
+    const btn = document.getElementById("btn-run-html-import");
+    if (btn) {
+        btn.innerText = "📄 Parsing HTML...";
+        btn.disabled = true;
+    }
+
+    try {
+        const res = await fetch("/api/league/scrape-html", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ league_id: leagueId, html: html })
+        });
+        const data = await res.json();
+        if (data.status === "success") {
+            alert(`🎉 ${data.message}\nImported ${data.counts?.teams || 0} teams into Graph DB!`);
+            currentLeagueKey = data.league_key;
+            localStorage.setItem("selectedLeagueKey", currentLeagueKey);
+            await loadLeagues();
+            window.loadHomeView?.();
+        } else {
+            alert(`❌ Import error: ${data.detail || data.message || "Failed to import HTML"}`);
+        }
+    } catch (e) {
+        alert("Error importing HTML: " + e.message);
+    } finally {
+        if (btn) {
+            btn.innerText = "📄 Parse & Import League from HTML";
+            btn.disabled = false;
+        }
+    }
+}
+
