@@ -120,9 +120,24 @@
                     Select an active Yahoo Fantasy Football league and sync all teams, rosters, draft picks, and headshots into the Kùzu Graph Database.
                 </p>
 
-                <div style="display:flex; gap:1rem; align-items:center">
-                    <select id="league-select" class="input-field" style="margin-bottom:0; max-width:400px"></select>
-                    <button id="btn-sync-league" class="btn">Sync Yahoo League to Graph DB</button>
+                <div style="display:flex; gap:0.75rem; align-items:center; flex-wrap:wrap">
+                    <select id="league-select" class="input-field" style="margin-bottom:0; max-width:380px"></select>
+                    <button id="btn-refresh-leagues" class="btn" title="Refresh available leagues from Yahoo" style="padding:0.65rem 0.9rem; background:#ffffff; border:1px solid #cbd5e1; color:var(--text-main)">🔄 Refresh</button>
+                    <button id="btn-sync-league" class="btn btn-accent">Sync Yahoo League to Graph DB</button>
+                </div>
+
+                <!-- Manual League Key or ID Fallback -->
+                <div style="margin-top:1.25rem; padding-top:1rem; border-top:1px dashed #cbd5e1">
+                    <div style="font-size:0.85rem; color:var(--text-muted); margin-bottom:0.4rem">
+                        💡 <b>Don't see your league in the dropdown?</b> Enter your Yahoo League ID or League Key manually:
+                    </div>
+                    <div style="display:flex; gap:0.5rem; max-width:550px; align-items:center; flex-wrap:wrap">
+                        <input type="text" id="manual-league-key-input" class="input-field" placeholder="e.g. 123456 or 449.l.123456" style="margin-bottom:0; max-width:300px">
+                        <button id="btn-sync-manual-league" class="btn" style="white-space:nowrap; background:#ffffff; border:1px solid #cbd5e1; color:var(--text-main); padding:0.65rem 1rem">Sync Manual League ID</button>
+                    </div>
+                    <div style="font-size:0.78rem; color:var(--text-dim); margin-top:0.35rem">
+                        Your League ID is found in your Yahoo URL: <code>football.fantasysports.yahoo.com/f1/<b>123456</b></code>
+                    </div>
                 </div>
             </div>
 

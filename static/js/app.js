@@ -61,6 +61,8 @@ document.addEventListener("DOMContentLoaded", () => {
     // Bind buttons
     document.getElementById("btn-save-credentials")?.addEventListener("click", saveCredentials);
     document.getElementById("btn-sync-league")?.addEventListener("click", syncLeague);
+    document.getElementById("btn-refresh-leagues")?.addEventListener("click", () => loadLeagues(true));
+    document.getElementById("btn-sync-manual-league")?.addEventListener("click", syncManualLeague);
     document.getElementById("btn-yahoo-login")?.addEventListener("click", startYahooLogin);
     document.getElementById("btn-header-login")?.addEventListener("click", startYahooLogin);
     document.getElementById("btn-header-logout")?.addEventListener("click", logoutYahoo);
@@ -84,6 +86,8 @@ function handleAuthQueryParams() {
     if (urlParams.has("auth_success")) {
         window.history.replaceState({}, document.title, window.location.pathname);
         alert("🎉 Successfully authenticated with Yahoo OAuth 2.0!");
+        checkAuthStatus();
+        loadLeagues();
     } else if (urlParams.has("auth_error")) {
         const errorMsg = urlParams.get("auth_error");
         window.history.replaceState({}, document.title, window.location.pathname);
@@ -217,7 +221,7 @@ async function startYahooLogin() {
     }
 }
 
-async function loadLeagues() {
+async function loadLeagues(showNotice = false) {
     const select = document.getElementById("league-select");
     if (!select) return;
     
@@ -226,6 +230,10 @@ async function loadLeagues() {
         const data = await res.json();
         select.innerHTML = '<option value="">Select a Fantasy League...</option>';
         const leagues = data.leagues || [];
+
+        if (data.debug) {
+            console.log("Yahoo League Ingestion Debug Log:", data.debug);
+        }
         
         leagues.forEach(l => {
             const opt = document.createElement("option");
@@ -240,9 +248,14 @@ async function loadLeagues() {
             if (data.error) {
                 opt.innerText = `⚠️ Yahoo API: ${data.error}`;
             } else {
-                opt.innerText = "No active Yahoo Fantasy Football leagues found for this account.";
+                opt.innerText = "No leagues auto-detected. Enter your League ID below!";
             }
             select.appendChild(opt);
+            if (showNotice) {
+                alert("Yahoo did not return leagues automatically for this account. You can enter your League ID (from your Yahoo URL) in the box below to sync directly!");
+            }
+        } else if (showNotice) {
+            alert(`Found ${leagues.length} league(s) from Yahoo!`);
         }
 
         if (currentLeagueKey && leagues.some(l => l.league_key === currentLeagueKey)) {
@@ -255,6 +268,43 @@ async function loadLeagues() {
         });
     } catch (e) {
         console.error("Error loading leagues:", e);
+        if (showNotice) alert("Error fetching leagues: " + e.message);
+    }
+}
+
+async function syncManualLeague() {
+    const input = document.getElementById("manual-league-key-input");
+    const rawVal = input ? input.value.trim() : "";
+    if (!rawVal) {
+        alert("Please enter your Yahoo League ID or League Key (e.g. 123456 or 449.l.123456)");
+        return;
+    }
+
+    const btn = document.getElementById("btn-sync-manual-league");
+    if (btn) {
+        btn.innerText = "Syncing...";
+        btn.disabled = true;
+    }
+
+    try {
+        const res = await fetch(`/api/league/sync/${encodeURIComponent(rawVal)}`, { method: "POST" });
+        const data = await res.json();
+        if (data.status === "success") {
+            alert(`🎉 ${data.message}`);
+            const syncedKey = rawVal.includes(".l.") ? rawVal : `nfl.l.${rawVal}`;
+            currentLeagueKey = syncedKey;
+            localStorage.setItem("selectedLeagueKey", currentLeagueKey);
+            await loadLeagues();
+        } else {
+            alert(`❌ Sync error: ${data.detail || data.message || "Failed to sync"}`);
+        }
+    } catch (e) {
+        alert("Error syncing manual league: " + e.message);
+    } finally {
+        if (btn) {
+            btn.innerText = "Sync Manual League ID";
+            btn.disabled = false;
+        }
     }
 }
 

@@ -22,46 +22,90 @@ class YahooFantasyClient:
         return response.json()
 
     def get_user_leagues(self, game_key: str = "nfl") -> List[Dict[str, Any]]:
-        """Fetch all fantasy football leagues for authenticated user with robust JSON parsing."""
+        """Fetch all fantasy football leagues for authenticated user with robust multi-endpoint & merged JSON parsing."""
         endpoints = [
             f"users;use_login=1/games;game_keys={game_key}/leagues",
             "users;use_login=1/games/leagues",
+            f"users;use_login=1/games;game_keys={game_key}/teams",
+            "users;use_login=1/games/teams",
             "users;use_login=1/leagues"
         ]
         
         leagues_dict = {}
+        debug_logs = []
+        
         for ep in endpoints:
             try:
                 res = self._get(ep)
+                debug_logs.append(f"Endpoint '{ep}' succeeded.")
                 
-                # Recursive JSON extractor for league objects
+                # Recursive JSON extractor handling both single dicts and Yahoo's serialized lists of dicts
+                def _process_item(item_data):
+                    if not isinstance(item_data, dict):
+                        return
+                    lk = item_data.get("league_key")
+                    if not lk and "team_key" in item_data:
+                        tk = str(item_data["team_key"])
+                        if ".l." in tk:
+                            lk = tk.rsplit(".t.", 1)[0]
+                    
+                    if lk and isinstance(lk, str) and ".l." in lk:
+                        name_val = item_data.get("name")
+                        league_name = str(name_val) if name_val else f"Fantasy League ({lk})"
+                        if lk not in leagues_dict:
+                            leagues_dict[lk] = {
+                                "league_key": lk,
+                                "league_id": str(item_data.get("league_id", lk.split(".")[-1] if "." in lk else lk)),
+                                "name": league_name,
+                                "num_teams": int(item_data.get("num_teams", 10) or 10),
+                                "season": str(item_data.get("season", "2024")),
+                                "draft_status": str(item_data.get("draft_status", "postdraft")),
+                                "scoring_type": str(item_data.get("scoring_type", "headhead")),
+                                "current_week": int(item_data.get("current_week", 1) or 1)
+                            }
+                        elif name_val and leagues_dict[lk]["name"].startswith("Fantasy League ("):
+                            leagues_dict[lk]["name"] = str(name_val)
+
                 def _walk(obj):
                     if isinstance(obj, dict):
-                        if "league_key" in obj and "name" in obj and obj.get("league_key"):
-                            lk = obj["league_key"]
-                            if lk not in leagues_dict:
-                                leagues_dict[lk] = {
-                                    "league_key": lk,
-                                    "league_id": obj.get("league_id", lk.split(".")[-1] if "." in lk else lk),
-                                    "name": obj.get("name", "Fantasy League"),
-                                    "num_teams": obj.get("num_teams", 10),
-                                    "season": obj.get("season", "2024"),
-                                    "draft_status": obj.get("draft_status", "postdraft"),
-                                    "scoring_type": obj.get("scoring_type", "headhead"),
-                                    "current_week": obj.get("current_week", 1)
-                                }
+                        _process_item(obj)
                         for v in obj.values():
                             _walk(v)
                     elif isinstance(obj, list):
-                        for item in obj:
-                            _walk(item)
+                        # Merge list of single-entry dicts if this list represents an XML element
+                        merged = {}
+                        for el in obj:
+                            if isinstance(el, dict):
+                                merged.update(el)
+                            elif isinstance(el, list):
+                                for sub in el:
+                                    if isinstance(sub, dict):
+                                        merged.update(sub)
+                        if merged:
+                            _process_item(merged)
+                        for el in obj:
+                            _walk(el)
 
                 _walk(res.get("fantasy_content", {}))
                 if leagues_dict:
                     break
             except Exception as e:
+                debug_logs.append(f"Endpoint '{ep}' error: {str(e)}")
                 print(f"Endpoint '{ep}' fetch warning: {e}")
 
+        # If any leagues have placeholder names, fetch real name via settings
+        for lk, l_info in leagues_dict.items():
+            if l_info["name"].startswith("Fantasy League ("):
+                try:
+                    s_info = self.get_league_settings(lk)
+                    if s_info.get("name"):
+                        l_info["name"] = s_info["name"]
+                    if s_info.get("season"):
+                        l_info["season"] = s_info["season"]
+                except Exception:
+                    pass
+
+        self.last_debug = debug_logs
         return list(leagues_dict.values())
 
     def get_league_settings(self, league_key: str) -> Dict[str, Any]:

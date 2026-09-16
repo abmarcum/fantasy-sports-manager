@@ -9,14 +9,19 @@ router = APIRouter(prefix="/api/league", tags=["League Sync & Data"])
 def get_user_leagues():
     try:
         leagues = yahoo_client.get_user_leagues()
-        return {"leagues": leagues}
+        return {"leagues": leagues, "debug": getattr(yahoo_client, "last_debug", [])}
     except Exception as e:
         # Fallback empty list if unauthenticated or error
-        return {"leagues": [], "error": str(e)}
+        return {"leagues": [], "error": str(e), "debug": getattr(yahoo_client, "last_debug", [])}
 
 @router.post("/sync/{league_key}")
 def sync_league(league_key: str):
     """Fetches real Yahoo league teams, settings, players, and draft picks into Kùzu Graph DB."""
+    clean_key = league_key.strip()
+    if clean_key.isdigit():
+        clean_key = f"nfl.l.{clean_key}"
+    league_key = clean_key
+
     try:
         settings_info = yahoo_client.get_league_settings(league_key)
         teams = yahoo_client.get_league_teams(league_key)
