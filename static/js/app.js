@@ -77,7 +77,7 @@ window.refreshActiveTab = function() {
     else if (target === "graph") window.initCytoscapeGraph?.();
 };
 
-document.addEventListener("DOMContentLoaded", () => {
+function initApp() {
     initTabs();
     handleAuthQueryParams();
     checkAuthStatus();
@@ -183,7 +183,13 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         }
     });
-});
+}
+
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initApp);
+} else {
+    initApp();
+}
 
 function handleAuthQueryParams() {
     const urlParams = new URLSearchParams(window.location.search);
@@ -329,8 +335,13 @@ async function loadLeagues(showNotice = false) {
     const setupSelect = document.getElementById("league-select");
     const globalSelect = document.getElementById("global-league-select");
     
+    // Immediate pre-population of teams if currentLeagueKey is already stored
+    if (currentLeagueKey) {
+        loadTeamsForLeague(currentLeagueKey);
+    }
+
     try {
-        const res = await fetch("/api/league/list");
+        const res = await fetch(`/api/league/list${showNotice ? '?refresh=true' : ''}`);
         const data = await res.json();
         const leagues = data.leagues || [];
 
@@ -345,6 +356,7 @@ async function loadLeagues(showNotice = false) {
                 const opt = document.createElement("option");
                 opt.value = l.league_key;
                 opt.innerText = `${l.name} (${l.season})`;
+                if (l.league_key === currentLeagueKey) opt.selected = true;
                 sel.appendChild(opt);
             });
             if (leagues.length === 0) {
@@ -359,7 +371,7 @@ async function loadLeagues(showNotice = false) {
         populate(globalSelect, "Select a League...");
 
         if (leagues.length === 0 && showNotice) {
-            alert("Yahoo did not return leagues automatically for this account. You can enter your League ID (from your Yahoo URL) in the box below to sync directly!");
+            alert("Yahoo did not return leagues automatically for this account. You can enter your League ID in Setup to sync directly!");
         } else if (leagues.length > 0 && showNotice) {
             alert(`Found ${leagues.length} league(s)!`);
         }
@@ -375,10 +387,8 @@ async function loadLeagues(showNotice = false) {
         if (currentLeagueKey) {
             if (setupSelect) setupSelect.value = currentLeagueKey;
             if (globalSelect) globalSelect.value = currentLeagueKey;
+            await loadTeamsForLeague(currentLeagueKey);
         }
-
-        // Now load teams for this league
-        await loadTeamsForLeague(currentLeagueKey);
 
     } catch (e) {
         console.error("Error loading leagues:", e);
@@ -399,8 +409,6 @@ async function loadTeamsForLeague(leagueKey) {
         return;
     }
 
-    teamSelect.innerHTML = '<option value="">Loading teams...</option>';
-
     try {
         const res = await fetch(`/api/league/${encodeURIComponent(leagueKey)}/teams`);
         const data = await res.json();
@@ -414,6 +422,16 @@ async function loadTeamsForLeague(leagueKey) {
             return;
         }
 
+        // Determine target team before building options
+        let targetTeam = teams.find(t => t.team_key === currentTeamKey);
+        if (!targetTeam) {
+            targetTeam = teams.find(t => t.is_user_team) || teams[0];
+            currentTeamKey = targetTeam ? targetTeam.team_key : "";
+            if (currentTeamKey) {
+                localStorage.setItem("selectedTeamKey", currentTeamKey);
+            }
+        }
+
         teams.forEach(t => {
             const opt = document.createElement("option");
             opt.value = t.team_key;
@@ -423,21 +441,11 @@ async function loadTeamsForLeague(leagueKey) {
             opt.dataset.isUser = t.is_user_team ? "true" : "false";
             opt.dataset.name = t.name;
             opt.dataset.manager = t.manager_name || "";
+            if (targetTeam && t.team_key === targetTeam.team_key) {
+                opt.selected = true;
+            }
             teamSelect.appendChild(opt);
         });
-
-        // Selection logic:
-        // 1. If stored currentTeamKey exists in the fetched teams, keep it.
-        // 2. Else find team with is_user_team === true.
-        // 3. Else default to first team.
-        let targetTeam = teams.find(t => t.team_key === currentTeamKey);
-        if (!targetTeam) {
-            targetTeam = teams.find(t => t.is_user_team) || teams[0];
-            currentTeamKey = targetTeam ? targetTeam.team_key : "";
-            if (currentTeamKey) {
-                localStorage.setItem("selectedTeamKey", currentTeamKey);
-            }
-        }
 
         if (targetTeam) {
             teamSelect.value = targetTeam.team_key;

@@ -7,7 +7,7 @@ from src.graph_db.driver import db_driver
 router = APIRouter(prefix="/api/league", tags=["League Sync & Data"])
 
 @router.get("/list")
-def get_user_leagues():
+def get_user_leagues(refresh: bool = False):
     leagues = []
     yahoo_debug = []
 
@@ -23,17 +23,18 @@ def get_user_leagues():
     except Exception as e:
         print(f"Error querying local Graph DB for leagues: {e}")
 
-    # 2. Query Yahoo API if connected and merge results
-    try:
-        api_leagues = yahoo_client.get_user_leagues()
-        yahoo_debug = getattr(yahoo_client, "last_debug", [])
-        existing_keys = {l["league_key"] for l in leagues}
-        for al in (api_leagues or []):
-            if al.get("league_key") not in existing_keys:
-                leagues.append(al)
-                existing_keys.add(al.get("league_key"))
-    except Exception as e:
-        yahoo_debug = getattr(yahoo_client, "last_debug", [])
+    # 2. Query Yahoo API only if explicitly requested or if no leagues are saved locally yet
+    if refresh or not leagues:
+        try:
+            api_leagues = yahoo_client.get_user_leagues()
+            yahoo_debug = getattr(yahoo_client, "last_debug", [])
+            existing_keys = {l["league_key"] for l in leagues}
+            for al in (api_leagues or []):
+                if al.get("league_key") not in existing_keys:
+                    leagues.append(al)
+                    existing_keys.add(al.get("league_key"))
+        except Exception as e:
+            yahoo_debug = getattr(yahoo_client, "last_debug", [])
 
     return {"leagues": leagues, "debug": yahoo_debug}
 
