@@ -58,11 +58,17 @@ class PortfolioEngine:
 
             p_name = row["name"]
             if p_name not in player_map:
+                hs = row.get("headshot_url", "")
+                pkey = str(row.get("player_key", ""))
+                clean_id = pkey.replace("nfl.p.", "").strip()
+                if clean_id.isdigit() and (not hs or "82x82" in hs or "50x50" in hs):
+                    hs = f"https://sports.yahoo.com/assets/og/player/nfl/{clean_id}/"
+
                 player_map[p_name] = {
                     "name": p_name,
                     "position": row.get("position", "WR"),
                     "nfl_team": row.get("nfl_team", ""),
-                    "headshot_url": row.get("headshot_url", ""),
+                    "headshot_url": hs,
                     "leagues": [],
                     "shares": 0
                 }
@@ -166,7 +172,7 @@ class PortfolioEngine:
                     "name": "CeeDee Lamb",
                     "position": "WR",
                     "nfl_team": "DAL",
-                    "headshot_url": "https://s.yimg.com/it/u/fnt/headshots/nfl/players/32688.png",
+                    "headshot_url": "https://sports.yahoo.com/assets/og/player/nfl/32688/",
                     "shares": 3,
                     "total_leagues": 3,
                     "exposure_pct": 100.0,
@@ -177,7 +183,7 @@ class PortfolioEngine:
                     "name": "Jahmyr Gibbs",
                     "position": "RB",
                     "nfl_team": "DET",
-                    "headshot_url": "https://s.yimg.com/it/u/fnt/headshots/nfl/players/40026.png",
+                    "headshot_url": "https://sports.yahoo.com/assets/og/player/nfl/40059/",
                     "shares": 2,
                     "total_leagues": 3,
                     "exposure_pct": 66.7,
@@ -188,7 +194,7 @@ class PortfolioEngine:
                     "name": "Trey McBride",
                     "position": "TE",
                     "nfl_team": "ARI",
-                    "headshot_url": "https://s.yimg.com/it/u/fnt/headshots/nfl/players/34005.png",
+                    "headshot_url": "https://sports.yahoo.com/assets/og/player/nfl/34005/",
                     "shares": 2,
                     "total_leagues": 3,
                     "exposure_pct": 66.7,
@@ -199,7 +205,7 @@ class PortfolioEngine:
                     "name": "Patrick Mahomes",
                     "position": "QB",
                     "nfl_team": "KC",
-                    "headshot_url": "https://s.yimg.com/it/u/fnt/headshots/nfl/players/30123.png",
+                    "headshot_url": "https://sports.yahoo.com/assets/og/player/nfl/30123/",
                     "shares": 1,
                     "total_leagues": 3,
                     "exposure_pct": 33.3,
@@ -212,7 +218,7 @@ class PortfolioEngine:
                     "player_name": "CeeDee Lamb",
                     "position": "WR",
                     "nfl_team": "DAL",
-                    "headshot_url": "https://s.yimg.com/it/u/fnt/headshots/nfl/players/32688.png",
+                    "headshot_url": "https://sports.yahoo.com/assets/og/player/nfl/32688/",
                     "severity": "HIGH CONFLICT",
                     "situation": "Starting in Gridiron Dynasty (Yahoo), but facing an opponent starting him in High Stakes PPR (Sleeper)!",
                     "directive": "Need Lamb to hit 16–22 PPR points. Scoring over 28 pts will likely cost your Sleeper matchup.",

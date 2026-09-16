@@ -2,6 +2,21 @@
 let currentLeagueKey = localStorage.getItem("selectedLeagueKey") || "";
 let currentTeamKey = localStorage.getItem("selectedTeamKey") || "";
 
+window.DEFAULT_HEADSHOT = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64' fill='%2394a3b8'><circle cx='32' cy='24' r='14'/><path d='M12 56c0-11 9-20 20-20s20 9 20 20z'/></svg>";
+
+window.getPlayerHeadshot = function(url, playerKeyOrId) {
+    if (url && !url.includes("players/82x82") && !url.includes("50x50/3000") && !url.includes("/fnt/headshots/")) {
+        return url;
+    }
+    if (playerKeyOrId) {
+        const cleanId = String(playerKeyOrId).replace("nfl.p.", "").trim();
+        if (/^\d+$/.test(cleanId)) {
+            return `https://sports.yahoo.com/assets/og/player/nfl/${cleanId}/`;
+        }
+    }
+    return window.DEFAULT_HEADSHOT;
+};
+
 window.switchTab = function(target) {
     const tabs = document.querySelectorAll(".nav-tab");
     tabs.forEach(t => {

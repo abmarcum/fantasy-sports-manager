@@ -22,11 +22,11 @@ window.loadDraftView = async function() {
             card.className = "player-card";
             card.onclick = () => window.openPlayerModal?.(p.player_key, p.name);
             
-            const headshot = p.headshot_url || "https://s.yimg.com/lq/i/us/sp/v/nfl/players/50x50/3000.jpg";
+            const headshot = window.getPlayerHeadshot ? window.getPlayerHeadshot(p.headshot_url, p.player_key) : (p.headshot_url || window.DEFAULT_HEADSHOT);
             const reasonsHtml = (p.reasons || []).map(r => `<span style="font-size:0.75rem; color:var(--accent); display:block;">✨ ${r}</span>`).join("");
             
             card.innerHTML = `
-                <img src="${headshot}" class="headshot" alt="${p.name}" onerror="this.src='https://s.yimg.com/lq/i/us/sp/v/nfl/players/50x50/3000.jpg'">
+                <img src="${headshot}" class="headshot" alt="${p.name}" onerror="this.onerror=null; this.src=window.DEFAULT_HEADSHOT;">
                 <div style="flex:1">
                     <div style="font-weight:600">${p.name}</div>
                     <div style="font-size:0.8rem; color:var(--text-muted)">${p.nfl_team} · Bye Wk ${p.bye_week}</div>

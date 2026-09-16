@@ -10,9 +10,16 @@ window.initCytoscapeGraph = async function() {
     }
     
     try {
-        const res = await fetch("/api/graph/network");
+        const leagueKey = currentLeagueKey || localStorage.getItem("selectedLeagueKey") || "";
+        const url = leagueKey ? `/api/graph/network?league_key=${encodeURIComponent(leagueKey)}` : "/api/graph/network";
+        const res = await fetch(url);
         const data = await res.json();
         
+        if (!data.nodes || data.nodes.length === 0) {
+            container.innerHTML = '<div style="color:var(--text-muted); padding:3rem; text-align:center">No graph data found. Please select and sync a league above!</div>';
+            return;
+        }
+
         const cy = cytoscape({
             container: container,
             elements: [...data.nodes, ...data.edges],
@@ -28,10 +35,30 @@ window.initCytoscapeGraph = async function() {
                         'text-valign': 'bottom',
                         'text-margin-y': 6,
                         'background-color': 'data(color)',
-                        'width': 36,
-                        'height': 36,
+                        'width': 40,
+                        'height': 40,
                         'border-width': 2,
                         'border-color': '#ffffff'
+                    }
+                },
+                {
+                    selector: 'node[image]',
+                    style: {
+                        'background-image': 'data(image)',
+                        'background-fit': 'cover',
+                        'background-clip': 'node'
+                    }
+                },
+                {
+                    selector: 'node[type="Team"]',
+                    style: {
+                        'width': 56,
+                        'height': 56,
+                        'font-size': '13px',
+                        'font-weight': '700',
+                        'border-width': 3,
+                        'border-color': '#3b82f6',
+                        'background-color': '#eff6ff'
                     }
                 },
                 {
@@ -51,7 +78,9 @@ window.initCytoscapeGraph = async function() {
             layout: {
                 name: 'cose',
                 animate: true,
-                padding: 30
+                padding: 30,
+                nodeRepulsion: 8000,
+                idealEdgeLength: 100
             }
         });
     } catch (e) {

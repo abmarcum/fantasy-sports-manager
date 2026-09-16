@@ -34,14 +34,14 @@ window.loadWaiverView = async function() {
 
             <div class="grid-2">
                 ${(data.recommendations || []).map(p => {
-                    const headshot = p.headshot_url || "https://s.yimg.com/lq/i/us/sp/v/nfl/players/50x50/3000.jpg";
+                    const headshot = window.getPlayerHeadshot ? window.getPlayerHeadshot(p.headshot_url, p.player_key) : (p.headshot_url || window.DEFAULT_HEADSHOT);
                     const needBadge = p.is_team_need ? '<span style="background:rgba(245,158,11,0.15); color:#d97706; font-size:0.75rem; font-weight:700; padding:0.15rem 0.4rem; border-radius:4px">🎯 Team Need</span>' : '';
                     
                     return `
                         <div class="glass-card player-card" style="margin-bottom:0; flex-direction:column; align-items:stretch; gap:0.75rem" onclick="window.openPlayerModal?.('${p.player_key}', '${p.name}')">
                             <div style="display:flex; justify-content:space-between; align-items:center">
                                 <div style="display:flex; align-items:center; gap:0.75rem">
-                                    <img src="${headshot}" class="headshot" alt="${p.name}" onerror="this.src='https://s.yimg.com/lq/i/us/sp/v/nfl/players/50x50/3000.jpg'">
+                                    <img src="${headshot}" class="headshot" alt="${p.name}" onerror="this.onerror=null; this.src=window.DEFAULT_HEADSHOT;">
                                     <div>
                                         <div style="font-weight:700; font-size:1.05rem; color:var(--text-main)">${p.name}</div>
                                         <div style="font-size:0.8rem; color:var(--text-muted)">

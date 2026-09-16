@@ -65,7 +65,7 @@ async function loadBlockbusterTrades(leagueKey, container) {
                         ${step.from_team} ➔ ${step.to_team}
                     </div>
                     <div style="display:flex; align-items:center; gap:0.5rem; margin-top:0.6rem">
-                        ${step.headshot_url ? `<img src="${step.headshot_url}" style="width:36px; height:36px; border-radius:50%; object-fit:cover; border:1px solid #cbd5e1">` : ''}
+                        ${step.headshot_url ? `<img src="${window.getPlayerHeadshot ? window.getPlayerHeadshot(step.headshot_url) : step.headshot_url}" style="width:36px; height:36px; border-radius:50%; object-fit:cover; border:1px solid #cbd5e1" onerror="this.onerror=null; this.src=window.DEFAULT_HEADSHOT;">` : ''}
                         <div>
                             <div style="font-weight:700; font-size:0.95rem">${step.player} <span class="pos-badge pos-${step.position}">${step.position}</span></div>
                             <div style="font-size:0.78rem; color:var(--text-muted)">${step.nfl_team} • ${step.solves_need}</div>

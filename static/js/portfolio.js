@@ -60,9 +60,11 @@ window.loadPortfolioView = async function() {
                 </div>
 
                 <div style="display:flex; flex-direction:column; gap:0.8rem">
-                    ${conflicts.map(c => `
+                    ${conflicts.map(c => {
+                        const hs = window.getPlayerHeadshot ? window.getPlayerHeadshot(c.headshot_url) : (c.headshot_url || window.DEFAULT_HEADSHOT);
+                        return `
                         <div style="background:#ffffff; border:1px solid var(--glass-border); border-radius:8px; padding:1rem; display:flex; gap:1rem; align-items:center">
-                            ${c.headshot_url ? `<img src="${c.headshot_url}" style="width:48px; height:48px; border-radius:50%; object-fit:cover; border:1px solid #cbd5e1">` : ''}
+                            <img src="${hs}" style="width:48px; height:48px; border-radius:50%; object-fit:cover; border:1px solid #cbd5e1" onerror="this.onerror=null; this.src=window.DEFAULT_HEADSHOT;">
                             <div style="flex:1">
                                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.25rem">
                                     <span style="font-weight:800; font-size:1rem; color:var(--text-main)">${c.player_name} <span class="pos-badge pos-${c.position}">${c.position}</span> <span style="font-size:0.8rem; color:var(--text-muted)">${c.nfl_team}</span></span>
@@ -72,7 +74,7 @@ window.loadPortfolioView = async function() {
                                 <div style="font-size:0.8rem; color:var(--primary); font-weight:600">🎯 Strategy: ${c.directive}</div>
                             </div>
                         </div>
-                    `).join("")}
+                    `}).join("")}
                 </div>
             `;
             container.appendChild(conflictCard);
@@ -103,10 +105,12 @@ window.loadPortfolioView = async function() {
                         </tr>
                     </thead>
                     <tbody>
-                        ${exposures.map(p => `
+                        ${exposures.map(p => {
+                            const hs = window.getPlayerHeadshot ? window.getPlayerHeadshot(p.headshot_url) : (p.headshot_url || window.DEFAULT_HEADSHOT);
+                            return `
                             <tr style="border-bottom:1px solid var(--glass-border); background:#ffffff">
                                 <td style="padding:0.75rem; font-weight:700; color:var(--text-main); display:flex; align-items:center; gap:0.6rem">
-                                    ${p.headshot_url ? `<img src="${p.headshot_url}" style="width:32px; height:32px; border-radius:50%; object-fit:cover">` : ''}
+                                    <img src="${hs}" style="width:32px; height:32px; border-radius:50%; object-fit:cover" onerror="this.onerror=null; this.src=window.DEFAULT_HEADSHOT;">
                                     ${p.name} <span style="font-size:0.75rem; color:var(--text-dim)">(${p.nfl_team})</span>
                                 </td>
                                 <td style="padding:0.75rem"><span class="pos-badge pos-${p.position}">${p.position}</span></td>

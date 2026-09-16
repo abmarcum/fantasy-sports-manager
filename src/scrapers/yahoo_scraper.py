@@ -188,7 +188,7 @@ class YahooWebScraper:
             pos = "FLEX"
             nfl_team = "FA"
             status = "Active"
-            headshot = f"https://s.yimg.com/it/u/headshots/nfl/players/82x82/{p_id}.png"
+            headshot = f"https://sports.yahoo.com/assets/og/player/nfl/{p_id}/"
             selected_pos = "BN"
             is_starter = False
 
@@ -217,7 +217,7 @@ class YahooWebScraper:
                     status = status_el.text.strip() or "Questionable"
 
                 img_el = row.find("img")
-                if img_el and img_el.get("src") and "headshot" in img_el["src"]:
+                if img_el and img_el.get("src") and ("headshot" in img_el["src"] or "cutout" in img_el["src"]) and "82x82" not in img_el["src"]:
                     headshot = img_el["src"]
 
             players.append({

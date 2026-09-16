@@ -17,12 +17,12 @@ window.openPlayerModal = async function(playerKey, playerName) {
         ]);
         
         const p = profRes.profile || {};
-        const headshot = p.headshot_url || "https://s.yimg.com/lq/i/us/sp/v/nfl/players/50x50/3000.jpg";
+        const headshot = window.getPlayerHeadshot ? window.getPlayerHeadshot(p.headshot_url, playerKey) : (p.headshot_url || window.DEFAULT_HEADSHOT);
         
         container.innerHTML = `
             <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:1.5rem">
                 <div style="display:flex; align-items:center; gap:1.2rem">
-                    <img src="${headshot}" class="headshot" style="width:70px; height:70px; border-color:var(--primary)" onerror="this.src='https://s.yimg.com/lq/i/us/sp/v/nfl/players/50x50/3000.jpg'">
+                    <img src="${headshot}" class="headshot" style="width:70px; height:70px; border-color:var(--primary)" onerror="this.onerror=null; this.src=window.DEFAULT_HEADSHOT;">
                     <div>
                         <h2 style="font-size:1.6rem; font-weight:700">${p.name || playerName}</h2>
                         <div style="color:var(--text-muted); display:flex; gap:0.5rem; align-items:center; margin-top:0.25rem">

@@ -69,13 +69,13 @@ window.loadLineupView = async function() {
 };
 
 function renderPlayerCard(p, isStarter) {
-    const headshot = p.headshot_url || "https://s.yimg.com/lq/i/us/sp/v/nfl/players/50x50/3000.jpg";
+    const headshot = window.getPlayerHeadshot ? window.getPlayerHeadshot(p.headshot_url, p.player_key) : (p.headshot_url || window.DEFAULT_HEADSHOT);
     const slotBadge = `<span style="background:var(--primary); color:white; font-size:0.75rem; font-weight:700; padding:0.2rem 0.5rem; border-radius:4px; margin-right:0.5rem">${p.roster_slot || p.position}</span>`;
     const gradeBadge = `<span style="background:${p.matchup_grade === 'A' ? 'rgba(16,185,129,0.15)' : 'rgba(239,68,68,0.15)'}; color:${p.matchup_grade === 'A' ? '#059669' : '#dc2626'}; font-size:0.75rem; font-weight:700; padding:0.15rem 0.4rem; border-radius:4px">Grade ${p.matchup_grade}</span>`;
 
     return `
         <div class="player-card" onclick="window.openPlayerModal?.('${p.player_key}', '${p.name}')">
-            <img src="${headshot}" class="headshot" alt="${p.name}" onerror="this.src='https://s.yimg.com/lq/i/us/sp/v/nfl/players/50x50/3000.jpg'">
+            <img src="${headshot}" class="headshot" alt="${p.name}" onerror="this.onerror=null; this.src=window.DEFAULT_HEADSHOT;">
             <div style="flex:1">
                 <div style="display:flex; align-items:center; gap:0.4rem">
                     ${isStarter ? slotBadge : ''}

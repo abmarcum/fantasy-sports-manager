@@ -51,6 +51,13 @@ class PlayerEngine:
             
         player = records[0]
         
+        # Normalize headshot
+        hs = player.get("headshot_url") or ""
+        clean_id = player_key.replace("nfl.p.", "").strip()
+        if clean_num := (clean_id if clean_id.isdigit() else ""):
+            if not hs or "82x82" in hs or "50x50" in hs:
+                player["headshot_url"] = f"https://sports.yahoo.com/assets/og/player/nfl/{clean_num}/"
+
         # Get Sleeper trending status
         trending_adds = sleeper_client.get_trending_players("add", 24, 10)
         is_trending = any(t.get("player_id") == player.get("player_key") for t in trending_adds)

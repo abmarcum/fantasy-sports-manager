@@ -212,7 +212,7 @@ class BlockbusterTradeEngine:
                         "player": "DK Metcalf",
                         "position": "WR",
                         "nfl_team": "SEA",
-                        "headshot_url": "https://s.yimg.com/it/u/fnt/headshots/nfl/players/31896.png",
+                        "headshot_url": "https://sports.yahoo.com/assets/og/player/nfl/31896/",
                         "solves_need": "Solves Sarah's WR2 deficit"
                     },
                     {
@@ -223,7 +223,7 @@ class BlockbusterTradeEngine:
                         "player": "Josh Jacobs",
                         "position": "RB",
                         "nfl_team": "GB",
-                        "headshot_url": "https://s.yimg.com/it/u/fnt/headshots/nfl/players/31856.png",
+                        "headshot_url": "https://sports.yahoo.com/assets/og/player/nfl/31856/",
                         "solves_need": "Solves Andrew's RB1 urgency"
                     },
                     {
@@ -234,7 +234,7 @@ class BlockbusterTradeEngine:
                         "player": "Trey McBride",
                         "position": "TE",
                         "nfl_team": "ARI",
-                        "headshot_url": "https://s.yimg.com/it/u/fnt/headshots/nfl/players/34005.png",
+                        "headshot_url": "https://sports.yahoo.com/assets/og/player/nfl/34005/",
                         "solves_need": "Solves Dave's TE void"
                     }
                 ],
